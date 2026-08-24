@@ -12,14 +12,14 @@ function formatTimestamp(value: string) {
 }
 
 export function ActivityView() {
-  const { state, actions } = useWorkspace();
+  const { state, actions, mode } = useWorkspace();
   return (
     <div className="page-stack">
       <PageHeader
         eyebrow="Activity log"
         title="A trustworthy system record."
         description="Every meaningful mutation records its actor, source, timestamp, and recovery intent."
-        actions={<Button variant="secondary" onClick={() => actions.reset()}><RotateCcw size={14} /> Reset demo data</Button>}
+        actions={mode === "preview" ? <Button variant="secondary" onClick={() => actions.reset()}><RotateCcw size={14} /> Reset demo data</Button> : <StatusPill tone="green">Live Supabase record</StatusPill>}
       />
       <section className="audit-summary-grid">
         <GlassPanel><ShieldCheck size={19} /><div><strong>Explicit writes</strong><span>Draft changes require commit</span></div></GlassPanel>

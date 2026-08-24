@@ -9,15 +9,19 @@ npm install
 npm run dev
 ```
 
-The app starts with a complete local preview dataset and persists changes in browser storage. Open `/login` to see the authentication state. When Supabase keys are absent, the login screen offers preview access.
+The app starts with a complete local preview dataset and persists changes in browser storage. When valid Supabase variables are present, preview data is disabled, authentication is required, and the workspace reads and writes only through the Supabase repository.
 
 ## Connect Supabase
 
-1. Copy `.env.example` to `.env.local` and fill in the Supabase URL and keys.
-2. Apply `supabase/migrations/202608250001_phase_0_1_foundation.sql`.
-3. Configure the Supabase auth callback as `/auth/callback`.
+1. In the Supabase project Connect dialog, copy the Project URL and Publishable key.
+2. Put them in the ignored `.env.local` file as `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`.
+3. Apply both SQL files in `supabase/migrations` in filename order.
+4. In Authentication URL Configuration, set the local Site URL to `http://localhost:3000` and add `http://localhost:3000/auth/callback` as a redirect URL.
+5. Create a password user in Authentication, restart the dev server, and sign in at `/login`.
 
-The migration includes user-scoped row-level security, versioned work entities, an immutable activity log, draft change sets, ordered change operations, and a transactional Phase 1 commit function.
+Do not add a Secret key or legacy `service_role` key. Phase 1 uses the publishable key plus the signed-in user's JWT, so every request remains subject to RLS.
+
+The migrations include user-scoped row-level security, versioned work entities, an immutable activity log, draft change sets, ordered change operations, and transactional RPCs for Phase 1 mutations.
 
 ## Architecture
 

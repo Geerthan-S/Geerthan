@@ -1,5 +1,23 @@
 import type { WorkspaceState } from "@/domain/models";
 
+export function createEmptyWorkspace(): WorkspaceState {
+  return {
+    profile: {
+      id: "",
+      name: "Personal OS",
+      email: "",
+      timezone: "Asia/Kolkata",
+      focusTargetMinutes: 300,
+    },
+    projects: [],
+    tasks: [],
+    sessions: [],
+    inbox: [],
+    activity: [],
+    changeSets: [],
+  };
+}
+
 function at(hour: number, minute = 0, dayOffset = 0) {
   const value = new Date();
   value.setDate(value.getDate() + dayOffset);

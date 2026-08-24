@@ -7,7 +7,7 @@ export async function proxy(request: NextRequest) {
   if (!config) return NextResponse.next({ request });
 
   let response = NextResponse.next({ request });
-  const supabase = createServerClient(config.url, config.anonKey, {
+  const supabase = createServerClient(config.url, config.publishableKey, {
     cookies: {
       getAll: () => request.cookies.getAll(),
       setAll: (cookiesToSet) => {
@@ -18,7 +18,29 @@ export async function proxy(request: NextRequest) {
     },
   });
 
-  await supabase.auth.getClaims();
+  const { data } = await supabase.auth.getClaims();
+  const pathname = request.nextUrl.pathname;
+  const isApi = pathname.startsWith("/api/");
+  const isPublicPage = pathname === "/login" || pathname.startsWith("/auth/");
+
+  if (!data?.claims && !isApi && !isPublicPage) {
+    const destination = request.nextUrl.clone();
+    destination.pathname = "/login";
+    destination.searchParams.set("next", pathname);
+    const redirect = NextResponse.redirect(destination);
+    response.cookies.getAll().forEach((cookie) => redirect.cookies.set(cookie));
+    return redirect;
+  }
+
+  if (data?.claims && pathname === "/login") {
+    const destination = request.nextUrl.clone();
+    destination.pathname = "/";
+    destination.search = "";
+    const redirect = NextResponse.redirect(destination);
+    response.cookies.getAll().forEach((cookie) => redirect.cookies.set(cookie));
+    return redirect;
+  }
+
   return response;
 }
 

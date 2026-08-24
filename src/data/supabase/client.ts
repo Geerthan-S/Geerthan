@@ -6,5 +6,5 @@ import { getSupabaseConfig } from "@/data/supabase/config";
 export function createSupabaseBrowserClient() {
   const config = getSupabaseConfig();
   if (!config) return null;
-  return createBrowserClient(config.url, config.anonKey);
+  return createBrowserClient(config.url, config.publishableKey);
 }

@@ -1,6 +1,7 @@
 import type { Task, WorkspaceState } from "@/domain/models";
 
 export interface WorkspaceRepository {
+  readonly kind: "preview" | "supabase";
   load(): Promise<WorkspaceState>;
   toggleTask(taskId: string): Promise<WorkspaceState>;
   createTask(input: Pick<Task, "title" | "priority" | "projectId" | "dueAt">): Promise<WorkspaceState>;

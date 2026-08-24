@@ -79,7 +79,7 @@ function InboxCount() {
 }
 
 function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
-  const { state } = useWorkspace();
+  const { state, mode } = useWorkspace();
   const running = state.sessions.find((session) => session.status === "running");
   const task = state.tasks.find((item) => item.id === running?.taskId);
 
@@ -102,7 +102,7 @@ function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
         <span className="avatar">G</span>
         <div>
           <strong>{state.profile.name}</strong>
-          <small>Local preview</small>
+          <small>{mode === "supabase" ? "Live Supabase" : "Local preview"}</small>
         </div>
         <CircleUserRound size={18} />
       </div>

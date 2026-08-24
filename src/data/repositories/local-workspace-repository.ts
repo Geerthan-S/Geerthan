@@ -28,6 +28,7 @@ function event(
 }
 
 export class LocalWorkspaceRepository implements WorkspaceRepository {
+  readonly kind = "preview" as const;
   private state = createSeedWorkspace();
 
   private persist(next: WorkspaceState) {
