@@ -68,7 +68,10 @@ export interface ActivityEvent {
     | "capture_added"
     | "changeset_created"
     | "changeset_committed"
-    | "changeset_discarded";
+    | "changeset_discarded"
+    | "task_scheduled"
+    | "calendar_block_created"
+    | "habit_checked_in";
   summary: string;
   detail: string;
   occurredAt: string;
@@ -97,7 +100,43 @@ export interface ChangeSet {
   createdAt: string;
   committedAt: string | null;
   createdBy: "You" | "ChatGPT";
+  kind?: "general" | "daily_plan" | "unfinished_reschedule";
+  planDate?: string | null;
   operations: ChangeOperation[];
+}
+
+export type CalendarBlockKind = "meeting" | "focus" | "personal" | "break";
+
+export interface CalendarBlock {
+  id: string;
+  title: string;
+  kind: CalendarBlockKind;
+  startsAt: string;
+  endsAt: string;
+  notes: string;
+  source: "web" | "api" | "mcp" | "system";
+}
+
+export type HabitMetric = "boolean" | "duration" | "count" | "numeric";
+
+export interface Habit {
+  id: string;
+  name: string;
+  description: string;
+  metric: HabitMetric;
+  targetValue: number;
+  unit: string;
+  accent: "blue" | "violet" | "amber" | "emerald";
+  active: boolean;
+  sortOrder: number;
+}
+
+export interface HabitLog {
+  id: string;
+  habitId: string;
+  date: string;
+  value: number;
+  note: string;
 }
 
 export interface WorkspaceProfile {
@@ -116,4 +155,7 @@ export interface WorkspaceState {
   inbox: InboxItem[];
   activity: ActivityEvent[];
   changeSets: ChangeSet[];
+  calendarBlocks: CalendarBlock[];
+  habits: Habit[];
+  habitLogs: HabitLog[];
 }

@@ -1,5 +1,5 @@
 import { applyChangeSet } from "@/domain/change-set";
-import type { ActivityEvent, Task, WorkspaceState } from "@/domain/models";
+import type { ActivityEvent, CalendarBlockKind, Task, WorkspaceState } from "@/domain/models";
 import { createSeedWorkspace } from "@/data/seed";
 import type { WorkspaceRepository } from "@/data/repositories/workspace-repository";
 
@@ -257,6 +257,65 @@ export class LocalWorkspaceRepository implements WorkspaceRepository {
         ...this.state.activity,
       ],
     });
+  }
+
+  async scheduleTask(taskId: string, startsAt: string, endsAt: string) {
+    const task = this.state.tasks.find((item) => item.id === taskId);
+    if (!task) return structuredClone(this.state);
+    return this.persist({
+      ...this.state,
+      tasks: this.state.tasks.map((item) => item.id === taskId ? { ...item, scheduledStart: startsAt, scheduledEnd: endsAt, status: "planned" as const } : item),
+      activity: [event("task_scheduled", `Scheduled ${task.title}`, new Date(startsAt).toLocaleString(), true), ...this.state.activity],
+    });
+  }
+
+  async createCalendarBlock(input: { title: string; kind: CalendarBlockKind; startsAt: string; endsAt: string; notes?: string }) {
+    const block = { id: makeId("block"), title: input.title, kind: input.kind, startsAt: input.startsAt, endsAt: input.endsAt, notes: input.notes ?? "", source: "web" as const };
+    return this.persist({
+      ...this.state,
+      calendarBlocks: [...this.state.calendarBlocks, block],
+      activity: [event("calendar_block_created", `Blocked ${block.title}`, "Added to calendar", true), ...this.state.activity],
+    });
+  }
+
+  async checkInHabit(habitId: string, date: string, value: number, note = "") {
+    const habit = this.state.habits.find((item) => item.id === habitId);
+    if (!habit) return structuredClone(this.state);
+    const existing = this.state.habitLogs.find((log) => log.habitId === habitId && log.date === date);
+    const log = { id: existing?.id ?? makeId("habit-log"), habitId, date, value: habit.metric === "boolean" ? Number(value > 0) : value, note };
+    return this.persist({
+      ...this.state,
+      habitLogs: [log, ...this.state.habitLogs.filter((item) => !(item.habitId === habitId && item.date === date))],
+      activity: [event("habit_checked_in", `Checked in ${habit.name}`, `${log.value}${habit.unit ? ` ${habit.unit}` : ""}`, true), ...this.state.activity],
+    });
+  }
+
+  async generateDailyPlan(date: string) {
+    const candidates = this.state.tasks.filter((task) => task.status !== "completed" && task.status !== "blocked" && !task.scheduledStart).slice(0, 6);
+    if (!candidates.length) return structuredClone(this.state);
+    let cursor = new Date(`${date}T09:00:00`);
+    const operations = candidates.map((task, index) => {
+      const start = new Date(cursor);
+      const end = new Date(start.getTime() + Math.max(15, task.estimateMinutes) * 60000);
+      cursor = new Date(end.getTime() + 10 * 60000);
+      return { id: makeId("operation"), entity: "task" as const, action: "reschedule" as const, entityId: task.id, summary: `Schedule ${task.title} at ${start.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}`, before: { scheduledStart: task.scheduledStart, scheduledEnd: task.scheduledEnd }, after: { scheduledStart: start.toISOString(), scheduledEnd: end.toISOString(), status: "planned" }, sequence: index };
+    });
+    const draft = { id: makeId("changeset"), title: `Plan ${new Date(`${date}T12:00:00`).toLocaleDateString([], { weekday: "long", month: "short", day: "numeric" })}`, rationale: "Prioritizes urgent work and protects existing commitments.", status: "draft" as const, createdAt: new Date().toISOString(), committedAt: null, createdBy: "You" as const, kind: "daily_plan" as const, planDate: date, operations };
+    return this.persist({ ...this.state, changeSets: [draft, ...this.state.changeSets], activity: [event("changeset_created", "Drafted a daily plan", `${operations.length} changes are ready for review`), ...this.state.activity] });
+  }
+
+  async rescheduleUnfinished(date: string) {
+    const unfinished = this.state.tasks.filter((task) => task.status !== "completed" && task.scheduledEnd && new Date(task.scheduledEnd) < new Date()).slice(0, 6);
+    if (!unfinished.length) return structuredClone(this.state);
+    let cursor = new Date(`${date}T09:00:00`);
+    const operations = unfinished.map((task) => {
+      const start = new Date(cursor);
+      const end = new Date(start.getTime() + Math.max(15, task.estimateMinutes) * 60000);
+      cursor = new Date(end.getTime() + 10 * 60000);
+      return { id: makeId("operation"), entity: "task" as const, action: "reschedule" as const, entityId: task.id, summary: `Move ${task.title} to tomorrow`, before: { scheduledStart: task.scheduledStart, scheduledEnd: task.scheduledEnd }, after: { scheduledStart: start.toISOString(), scheduledEnd: end.toISOString(), status: "planned" } };
+    });
+    const draft = { id: makeId("changeset"), title: "Carry unfinished work forward", rationale: "Moves incomplete scheduled work into tomorrow for review.", status: "draft" as const, createdAt: new Date().toISOString(), committedAt: null, createdBy: "You" as const, kind: "unfinished_reschedule" as const, planDate: date, operations };
+    return this.persist({ ...this.state, changeSets: [draft, ...this.state.changeSets], activity: [event("changeset_created", "Drafted unfinished-task carryover", `${operations.length} tasks are ready to review`), ...this.state.activity] });
   }
 
   async reset() {

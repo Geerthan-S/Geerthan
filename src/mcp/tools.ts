@@ -15,7 +15,7 @@ export interface McpToolDefinition<TInput extends z.ZodType> {
 export const personalOsTools = {
   readWorkState: {
     name: "personal_os_read_work_state",
-    description: "Read the authenticated user's Phase 1 work state without mutating it.",
+    description: "Read the authenticated user's work, calendar, planning, and habit state without mutating it.",
     permission: "state:read",
     input: z.object({ includeCompleted: z.boolean().default(false) }),
     endpoint: "/api/work-state",
@@ -35,6 +35,14 @@ export const personalOsTools = {
     permission: "commit:write",
     input: z.object({ changeSetId: z.uuid() }),
     endpoint: "/api/change-sets/{changeSetId}/commit",
+    method: "POST",
+  },
+  draftDailyPlan: {
+    name: "personal_os_draft_daily_plan",
+    description: "Generate a persisted daily-plan draft for review without applying scheduling changes.",
+    permission: "draft:write",
+    input: z.object({ date: z.iso.date(), includeOverdue: z.boolean().default(true) }),
+    endpoint: "/api/plans/draft",
     method: "POST",
   },
 } satisfies Record<string, McpToolDefinition<z.ZodType>>;

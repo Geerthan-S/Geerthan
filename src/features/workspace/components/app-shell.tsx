@@ -6,6 +6,7 @@ import {
   Activity,
   BriefcaseBusiness,
   CalendarDays,
+  CalendarRange,
   CheckSquare2,
   CircleUserRound,
   Command,
@@ -15,6 +16,7 @@ import {
   Menu,
   Play,
   Search,
+  Repeat2,
   TimerReset,
   X,
 } from "lucide-react";
@@ -26,6 +28,8 @@ import { cn } from "@/shared/lib/utils";
 const navigation = [
   { href: "/", label: "Overview", icon: LayoutDashboard },
   { href: "/today", label: "Today", icon: CalendarDays },
+  { href: "/calendar", label: "Calendar", icon: CalendarRange },
+  { href: "/habits", label: "Habits", icon: Repeat2 },
   { href: "/projects", label: "Projects", icon: FolderKanban },
   { href: "/tasks", label: "Tasks", icon: CheckSquare2 },
   { href: "/sessions", label: "Work sessions", icon: TimerReset },

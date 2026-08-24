@@ -15,6 +15,9 @@ export function createEmptyWorkspace(): WorkspaceState {
     inbox: [],
     activity: [],
     changeSets: [],
+    calendarBlocks: [],
+    habits: [],
+    habitLogs: [],
   };
 }
 
@@ -361,5 +364,27 @@ export function createSeedWorkspace(): WorkspaceState {
         ],
       },
     ],
+    calendarBlocks: [
+      { id: "block-standup", title: "Internship stand-up", kind: "meeting", startsAt: at(10, 45), endsAt: at(11, 15), notes: "Daily delivery sync", source: "web" },
+      { id: "block-lunch", title: "Lunch and reset", kind: "break", startsAt: at(13, 0), endsAt: at(13, 45), notes: "", source: "web" },
+      { id: "block-client", title: "Client review call", kind: "meeting", startsAt: at(16, 0, 1), endsAt: at(16, 45, 1), notes: "Atlas stakeholder review", source: "web" },
+    ],
+    habits: [
+      { id: "habit-workout", name: "Workout", description: "Move with intent", metric: "boolean", targetValue: 1, unit: "", accent: "emerald", active: true, sortOrder: 1 },
+      { id: "habit-dsa", name: "DSA practice", description: "Focused learning and problem solving", metric: "duration", targetValue: 60, unit: "min", accent: "blue", active: true, sortOrder: 2 },
+      { id: "habit-water", name: "Water", description: "Stay consistently hydrated", metric: "count", targetValue: 8, unit: "glasses", accent: "violet", active: true, sortOrder: 3 },
+      { id: "habit-sleep", name: "Sleep", description: "Protect recovery quality", metric: "numeric", targetValue: 7.5, unit: "hours", accent: "amber", active: true, sortOrder: 4 },
+    ],
+    habitLogs: Array.from({ length: 6 }).flatMap((_, index) => {
+      const date = new Date();
+      date.setDate(date.getDate() - index - 1);
+      const day = date.toISOString().slice(0, 10);
+      return [
+        { id: `log-workout-${index}`, habitId: "habit-workout", date: day, value: index === 2 ? 0 : 1, note: "" },
+        { id: `log-dsa-${index}`, habitId: "habit-dsa", date: day, value: index === 1 ? 35 : 60 + (index % 2) * 15, note: "" },
+        { id: `log-water-${index}`, habitId: "habit-water", date: day, value: 6 + (index % 3), note: "" },
+        { id: `log-sleep-${index}`, habitId: "habit-sleep", date: day, value: 6.5 + (index % 3) * 0.5, note: "" },
+      ];
+    }),
   };
 }

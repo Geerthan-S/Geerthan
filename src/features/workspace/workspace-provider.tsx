@@ -9,7 +9,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import type { Priority, Task, WorkspaceState } from "@/domain/models";
+import type { CalendarBlockKind, Priority, Task, WorkspaceState } from "@/domain/models";
 import { createEmptyWorkspace, createSeedWorkspace } from "@/data/seed";
 import { createWorkspaceRepository } from "@/data/repositories/create-workspace-repository";
 
@@ -22,6 +22,11 @@ interface WorkspaceActions {
   stopSession(outcome?: string): Promise<void>;
   commitChangeSet(changeSetId: string): Promise<void>;
   discardChangeSet(changeSetId: string): Promise<void>;
+  scheduleTask(taskId: string, startsAt: string, endsAt: string): Promise<void>;
+  createCalendarBlock(input: { title: string; kind: CalendarBlockKind; startsAt: string; endsAt: string; notes?: string }): Promise<void>;
+  checkInHabit(habitId: string, date: string, value: number, note?: string): Promise<void>;
+  generateDailyPlan(date: string): Promise<void>;
+  rescheduleUnfinished(date: string): Promise<void>;
   reset(): Promise<void>;
 }
 
@@ -41,24 +46,25 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     mode === "supabase" ? createEmptyWorkspace() : createSeedWorkspace(),
   );
   const [ready, setReady] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [fatalError, setFatalError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
 
   useEffect(() => {
     repository
       .load()
       .then((snapshot) => setState(snapshot))
       .catch((loadError: unknown) =>
-        setError(loadError instanceof Error ? loadError.message : "Workspace loading failed."),
+        setFatalError(loadError instanceof Error ? loadError.message : "Workspace loading failed."),
       )
       .finally(() => setReady(true));
   }, [repository]);
 
   const run = useCallback(async (operation: () => Promise<WorkspaceState>) => {
     try {
-      setError(null);
+      setNotice(null);
       setState(await operation());
     } catch (operationError) {
-      setError(
+      setNotice(
         operationError instanceof Error
           ? operationError.message
           : "The workspace update failed.",
@@ -79,6 +85,14 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
         run(() => repository.commitChangeSet(changeSetId)),
       discardChangeSet: (changeSetId) =>
         run(() => repository.discardChangeSet(changeSetId)),
+      scheduleTask: (taskId, startsAt, endsAt) =>
+        run(() => repository.scheduleTask(taskId, startsAt, endsAt)),
+      createCalendarBlock: (input) =>
+        run(() => repository.createCalendarBlock(input)),
+      checkInHabit: (habitId, date, value, note) =>
+        run(() => repository.checkInHabit(habitId, date, value, note)),
+      generateDailyPlan: (date) => run(() => repository.generateDailyPlan(date)),
+      rescheduleUnfinished: (date) => run(() => repository.rescheduleUnfinished(date)),
       reset: () => run(() => repository.reset()),
     }),
     [repository, run],
@@ -96,13 +110,13 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     );
   }
 
-  if (mode === "supabase" && error) {
+  if (mode === "supabase" && fatalError) {
     return (
       <main className="workspace-gate">
         <div className="workspace-gate-card glass-panel">
           <span className="eyebrow">Supabase connection</span>
           <h1>Workspace unavailable</h1>
-          <p>{error}</p>
+          <p>{fatalError}</p>
           <div className="workspace-gate-actions">
             <a className="button button-secondary button-md" href="/login">Sign in</a>
             <button className="button button-primary button-md" onClick={() => window.location.reload()}>
@@ -117,6 +131,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   return (
     <WorkspaceContext.Provider value={{ state, ready, mode, actions }}>
       {children}
+      {notice ? <button className="workspace-notice glass-panel" onClick={() => setNotice(null)}>{notice}<span>Dismiss</span></button> : null}
     </WorkspaceContext.Provider>
   );
 }

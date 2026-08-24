@@ -1,12 +1,15 @@
 "use client";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Task, WorkspaceState } from "@/domain/models";
+import type { CalendarBlockKind, Task, WorkspaceState } from "@/domain/models";
 import type { WorkspaceRepository } from "@/data/repositories/workspace-repository";
 import {
   mapActivity,
+  mapCalendarBlock,
   mapChangeSet,
   mapInboxItem,
+  mapHabit,
+  mapHabitLog,
   mapProfile,
   mapProject,
   mapSession,
@@ -30,7 +33,9 @@ export class SupabaseWorkspaceRepository implements WorkspaceRepository {
       throw new Error("Your Supabase session is not authenticated.");
     }
     const userId = authData.user.id;
-    const [profile, projects, tasks, sessions, inbox, activity, changeSets] =
+    const { error: initializeError } = await this.client.rpc("initialize_phase_2_workspace");
+    if (initializeError && initializeError.code !== "PGRST202") throw new Error(initializeError.message);
+    const [profile, projects, tasks, sessions, inbox, activity, changeSets, calendarBlocks, habits, habitLogs] =
       await Promise.all([
         this.client.from("profiles").select("*").eq("id", userId).single(),
         this.client
@@ -65,6 +70,23 @@ export class SupabaseWorkspaceRepository implements WorkspaceRepository {
           .select("*, change_operations(*)")
           .eq("user_id", userId)
           .order("created_at", { ascending: false }),
+        this.client
+          .from("calendar_blocks")
+          .select("*")
+          .eq("user_id", userId)
+          .order("starts_at", { ascending: true }),
+        this.client
+          .from("habits")
+          .select("*")
+          .eq("user_id", userId)
+          .eq("active", true)
+          .order("sort_order", { ascending: true }),
+        this.client
+          .from("habit_logs")
+          .select("*")
+          .eq("user_id", userId)
+          .gte("log_date", new Date(Date.now() - 90 * 86400000).toISOString().slice(0, 10))
+          .order("log_date", { ascending: false }),
       ]);
     const failure = [
       profile,
@@ -74,6 +96,9 @@ export class SupabaseWorkspaceRepository implements WorkspaceRepository {
       inbox,
       activity,
       changeSets,
+      calendarBlocks,
+      habits,
+      habitLogs,
     ].find((result) => result.error)?.error;
     if (failure) throw new Error(failure.message);
 
@@ -100,6 +125,11 @@ export class SupabaseWorkspaceRepository implements WorkspaceRepository {
       changeSets: (changeSets.data ?? []).map((row) =>
         mapChangeSet(row as Record<string, unknown>),
       ),
+      calendarBlocks: (calendarBlocks.data ?? []).map((row) =>
+        mapCalendarBlock(row as Record<string, unknown>),
+      ),
+      habits: (habits.data ?? []).map((row) => mapHabit(row as Record<string, unknown>)),
+      habitLogs: (habitLogs.data ?? []).map((row) => mapHabitLog(row as Record<string, unknown>)),
     };
   }
 
@@ -145,6 +175,26 @@ export class SupabaseWorkspaceRepository implements WorkspaceRepository {
     return this.runRpc("discard_change_set", {
       target_change_set: changeSetId,
     });
+  }
+
+  scheduleTask(taskId: string, startsAt: string, endsAt: string) {
+    return this.runRpc("schedule_task", { target_task: taskId, task_start: startsAt, task_end: endsAt });
+  }
+
+  createCalendarBlock(input: { title: string; kind: CalendarBlockKind; startsAt: string; endsAt: string; notes?: string }) {
+    return this.runRpc("create_calendar_block_with_activity", { block_title: input.title, block_kind: input.kind, block_start: input.startsAt, block_end: input.endsAt, block_notes: input.notes ?? "" });
+  }
+
+  checkInHabit(habitId: string, date: string, value: number, note = "") {
+    return this.runRpc("upsert_habit_checkin", { target_habit: habitId, target_date: date, checkin_value: value, checkin_note: note });
+  }
+
+  generateDailyPlan(date: string) {
+    return this.runRpc("generate_daily_plan_draft", { target_date: date, include_overdue: true });
+  }
+
+  rescheduleUnfinished(date: string) {
+    return this.runRpc("draft_unfinished_reschedule", { target_date: date });
   }
 
   async reset(): Promise<WorkspaceState> {

@@ -1,8 +1,11 @@
 import type {
   ActivityEvent,
+  CalendarBlock,
   ChangeOperation,
   ChangeSet,
   InboxItem,
+  Habit,
+  HabitLog,
   Project,
   Task,
   WorkSession,
@@ -104,6 +107,9 @@ export function mapActivity(row: Row): ActivityEvent {
     "changeset_created",
     "changeset_committed",
     "changeset_discarded",
+    "task_scheduled",
+    "calendar_block_created",
+    "habit_checked_in",
   ];
   const eventType = text(row.event_type);
   return {
@@ -158,6 +164,44 @@ export function mapChangeSet(row: Row): ChangeSet {
     createdAt: text(row.created_at),
     committedAt: nullableText(row.committed_at),
     createdBy: text(row.created_by) === "ChatGPT" ? "ChatGPT" : "You",
+    kind: text(row.kind, "general") as NonNullable<ChangeSet["kind"]>,
+    planDate: nullableText(row.plan_date),
     operations,
+  };
+}
+
+export function mapCalendarBlock(row: Row): CalendarBlock {
+  return {
+    id: text(row.id),
+    title: text(row.title),
+    kind: text(row.kind, "focus") as CalendarBlock["kind"],
+    startsAt: text(row.starts_at),
+    endsAt: text(row.ends_at),
+    notes: text(row.notes),
+    source: text(row.source, "web") as CalendarBlock["source"],
+  };
+}
+
+export function mapHabit(row: Row): Habit {
+  return {
+    id: text(row.id),
+    name: text(row.name),
+    description: text(row.description),
+    metric: text(row.metric, "boolean") as Habit["metric"],
+    targetValue: numberValue(row.target_value, 1),
+    unit: text(row.unit),
+    accent: text(row.accent, "blue") as Habit["accent"],
+    active: Boolean(row.active),
+    sortOrder: numberValue(row.sort_order),
+  };
+}
+
+export function mapHabitLog(row: Row): HabitLog {
+  return {
+    id: text(row.id),
+    habitId: text(row.habit_id),
+    date: text(row.log_date),
+    value: numberValue(row.value),
+    note: text(row.note),
   };
 }
