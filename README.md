@@ -1,36 +1,45 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Personal OS
 
-## Getting Started
+A calm, work-first operating system. Phase 0/1 covers the production foundation, authentication boundary, dashboard, Today, Projects, Tasks, Work Sessions, Inbox/Capture, Activity, and draft-to-commit change sets.
 
-First, run the development server:
+## Run locally
 
-```bash
+```powershell
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+The app starts with a complete local preview dataset and persists changes in browser storage. Open `/login` to see the authentication state. When Supabase keys are absent, the login screen offers preview access.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Connect Supabase
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. Copy `.env.example` to `.env.local` and fill in the Supabase URL and keys.
+2. Apply `supabase/migrations/202608250001_phase_0_1_foundation.sql`.
+3. Configure the Supabase auth callback as `/auth/callback`.
 
-## Learn More
+The migration includes user-scoped row-level security, versioned work entities, an immutable activity log, draft change sets, ordered change operations, and a transactional Phase 1 commit function.
 
-To learn more about Next.js, take a look at the following resources:
+## Architecture
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- `src/app` — thin routes, API handlers, auth callback, and request proxy
+- `src/features` — Phase 1 UI and feature validation
+- `src/domain` — framework-independent models, queries, and change application
+- `src/data` — repository contracts, local preview repository, and Supabase access
+- `src/integrations` — external connector interfaces only; no connector is implemented in Phase 1
+- `src/mcp` — permissioned MCP tool contracts mapped to authenticated APIs
+- `supabase` — schema migration and optional database seed
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+The browser preview repository and the Supabase repository implement separate storage concerns. UI components do not import Supabase. External providers cannot write domain state directly; future adapters must produce validated change sets.
 
-## Deploy on Vercel
+## Safety boundary
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- Read tools use `state:read`.
+- Planning tools use `draft:write` and cannot apply changes.
+- Commit tools use `commit:write` and operate only on reviewed change-set IDs.
+- Supabase validates the authenticated user, entity ownership, expected record version, and supported Phase 1 entity type inside a transaction.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Validation
+
+```powershell
+npm run validate
+```
