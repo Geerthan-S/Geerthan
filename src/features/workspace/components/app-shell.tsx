@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   Activity,
   BriefcaseBusiness,
+  Braces,
   CalendarDays,
   CalendarRange,
   CheckSquare2,
@@ -35,6 +36,7 @@ const navigation = [
   { href: "/sessions", label: "Work sessions", icon: TimerReset },
   { href: "/inbox", label: "Inbox", icon: Inbox },
   { href: "/activity", label: "Activity", icon: Activity },
+  { href: "/mcp-diagnostics", label: "MCP diagnostics", icon: Braces },
 ];
 
 function Brand() {

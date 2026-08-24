@@ -4,17 +4,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { CalendarBlockKind, Task, WorkspaceState } from "@/domain/models";
 import type { WorkspaceRepository } from "@/data/repositories/workspace-repository";
 import {
-  mapActivity,
-  mapCalendarBlock,
-  mapChangeSet,
-  mapInboxItem,
-  mapHabit,
-  mapHabitLog,
-  mapProfile,
-  mapProject,
-  mapSession,
-  mapTask,
-} from "@/data/supabase/workspace-mappers";
+  readWorkspaceState,
+} from "@/data/supabase/read-workspace-state";
 
 export class SupabaseWorkspaceRepository implements WorkspaceRepository {
   readonly kind = "supabase" as const;
@@ -32,105 +23,9 @@ export class SupabaseWorkspaceRepository implements WorkspaceRepository {
     if (authError || !authData.user) {
       throw new Error("Your Supabase session is not authenticated.");
     }
-    const userId = authData.user.id;
     const { error: initializeError } = await this.client.rpc("initialize_phase_2_workspace");
     if (initializeError && initializeError.code !== "PGRST202") throw new Error(initializeError.message);
-    const [profile, projects, tasks, sessions, inbox, activity, changeSets, calendarBlocks, habits, habitLogs] =
-      await Promise.all([
-        this.client.from("profiles").select("*").eq("id", userId).single(),
-        this.client
-          .from("projects")
-          .select("*")
-          .eq("user_id", userId)
-          .order("updated_at", { ascending: false }),
-        this.client
-          .from("tasks")
-          .select("*")
-          .eq("user_id", userId)
-          .order("created_at", { ascending: false }),
-        this.client
-          .from("work_sessions")
-          .select("*")
-          .eq("user_id", userId)
-          .order("started_at", { ascending: false })
-          .limit(100),
-        this.client
-          .from("inbox_items")
-          .select("*")
-          .eq("user_id", userId)
-          .order("created_at", { ascending: false }),
-        this.client
-          .from("activity_log")
-          .select("*")
-          .eq("user_id", userId)
-          .order("occurred_at", { ascending: false })
-          .limit(250),
-        this.client
-          .from("change_sets")
-          .select("*, change_operations(*)")
-          .eq("user_id", userId)
-          .order("created_at", { ascending: false }),
-        this.client
-          .from("calendar_blocks")
-          .select("*")
-          .eq("user_id", userId)
-          .order("starts_at", { ascending: true }),
-        this.client
-          .from("habits")
-          .select("*")
-          .eq("user_id", userId)
-          .eq("active", true)
-          .order("sort_order", { ascending: true }),
-        this.client
-          .from("habit_logs")
-          .select("*")
-          .eq("user_id", userId)
-          .gte("log_date", new Date(Date.now() - 90 * 86400000).toISOString().slice(0, 10))
-          .order("log_date", { ascending: false }),
-      ]);
-    const failure = [
-      profile,
-      projects,
-      tasks,
-      sessions,
-      inbox,
-      activity,
-      changeSets,
-      calendarBlocks,
-      habits,
-      habitLogs,
-    ].find((result) => result.error)?.error;
-    if (failure) throw new Error(failure.message);
-
-    return {
-      profile: mapProfile(
-        profile.data as Record<string, unknown>,
-        authData.user.email ?? "",
-      ),
-      projects: (projects.data ?? []).map((row) =>
-        mapProject(row as Record<string, unknown>),
-      ),
-      tasks: (tasks.data ?? []).map((row) =>
-        mapTask(row as Record<string, unknown>),
-      ),
-      sessions: (sessions.data ?? []).map((row) =>
-        mapSession(row as Record<string, unknown>),
-      ),
-      inbox: (inbox.data ?? []).map((row) =>
-        mapInboxItem(row as Record<string, unknown>),
-      ),
-      activity: (activity.data ?? []).map((row) =>
-        mapActivity(row as Record<string, unknown>),
-      ),
-      changeSets: (changeSets.data ?? []).map((row) =>
-        mapChangeSet(row as Record<string, unknown>),
-      ),
-      calendarBlocks: (calendarBlocks.data ?? []).map((row) =>
-        mapCalendarBlock(row as Record<string, unknown>),
-      ),
-      habits: (habits.data ?? []).map((row) => mapHabit(row as Record<string, unknown>)),
-      habitLogs: (habitLogs.data ?? []).map((row) => mapHabitLog(row as Record<string, unknown>)),
-    };
+    return readWorkspaceState(this.client, authData.user);
   }
 
   toggleTask(taskId: string) {
