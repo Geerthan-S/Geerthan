@@ -11,8 +11,10 @@ import {
   CheckSquare2,
   CircleUserRound,
   Command,
+  BrainCircuit,
   FolderKanban,
   Inbox,
+  GraduationCap,
   LayoutDashboard,
   Menu,
   Play,
@@ -27,10 +29,13 @@ import { Button } from "@/shared/components/ui/button";
 import { cn } from "@/shared/lib/utils";
 
 const navigation = [
-  { href: "/", label: "Overview", icon: LayoutDashboard },
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/work", label: "Work", icon: BriefcaseBusiness },
   { href: "/today", label: "Today", icon: CalendarDays },
   { href: "/calendar", label: "Calendar", icon: CalendarRange },
   { href: "/habits", label: "Habits", icon: Repeat2 },
+  { href: "/growth", label: "Growth", icon: BrainCircuit },
+  { href: "/academics", label: "Academics", icon: GraduationCap },
   { href: "/projects", label: "Projects", icon: FolderKanban },
   { href: "/tasks", label: "Tasks", icon: CheckSquare2 },
   { href: "/sessions", label: "Work sessions", icon: TimerReset },
