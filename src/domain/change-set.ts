@@ -29,6 +29,9 @@ export function describeOperation(operation: ChangeOperation) {
     update: "Update",
     complete: "Complete",
     reschedule: "Reschedule",
+    start: "Start",
+    end: "End",
+    log: "Log",
   };
   return `${verbs[operation.action]} ${operation.entity.replace("_", " ")}`;
 }

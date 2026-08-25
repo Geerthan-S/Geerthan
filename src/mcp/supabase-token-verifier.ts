@@ -24,7 +24,7 @@ export const supabaseTokenVerifier: OAuthTokenVerifier = {
     return {
       token,
       clientId: data.user.id,
-      scopes: ["personal-os:read"],
+      scopes: ["personal-os:read", "personal-os:write"],
       expiresAt,
       extra: { email: data.user.email ?? "" },
     };

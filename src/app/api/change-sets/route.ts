@@ -43,8 +43,9 @@ export async function POST(request: Request) {
     const draft = await context.repository.createDraft(parsed.data);
     return NextResponse.json({ data: draft }, { status: 201 });
   } catch (error) {
+    console.error("Change-set draft creation failed", error instanceof Error ? error.name : "UnknownError");
     return NextResponse.json(
-      { error: "draft_creation_failed", detail: error instanceof Error ? error.message : "Unknown error" },
+      { error: "draft_creation_failed" },
       { status: 409 },
     );
   }

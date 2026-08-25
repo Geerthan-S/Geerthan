@@ -2,10 +2,12 @@ import { describe, expect, it, vi } from "vitest";
 import { Client } from "@modelcontextprotocol/client";
 import { InMemoryTransport } from "@modelcontextprotocol/server";
 import type { WorkspaceReadRepository } from "@/data/repositories/workspace-read-repository";
+import type { DomainActionRepository } from "@/data/repositories/domain-action-repository";
 import { createSeedWorkspace } from "@/data/seed";
 import { PersonalOsReadService } from "@/mcp/personal-os-read-service";
+import { PersonalOsWriteService } from "@/mcp/personal-os-write-service";
 import { createPersonalOsMcpServer } from "@/mcp/server";
-import { readToolNames } from "@/mcp/tools";
+import { readToolNames, writeToolNames } from "@/mcp/tools";
 
 describe("Phase 3 MCP read security", () => {
   it("exposes exactly the approved read-only tools", () => {
@@ -87,5 +89,63 @@ describe("Phase 3 MCP read security", () => {
 
     await client.close();
     await server.close();
+  });
+
+  it("exposes only the approved domain write actions and executes validated structured input", async () => {
+    const readRepository: WorkspaceReadRepository = { userId: "seed-user", load: vi.fn(async () => createSeedWorkspace()) };
+    const execute = vi.fn(async (action, input) => ({ action, input, ok: true }));
+    const writeRepository: DomainActionRepository = { userId: "seed-user", execute };
+    const server = createPersonalOsMcpServer(
+      new PersonalOsReadService(readRepository),
+      new PersonalOsWriteService(writeRepository),
+    );
+    const client = new Client({ name: "phase-write-test", version: "1.0.0" });
+    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+    await server.connect(serverTransport);
+    await client.connect(clientTransport);
+
+    const listed = await client.listTools();
+    expect(listed.tools.map((tool) => tool.name)).toEqual([...readToolNames, ...writeToolNames]);
+    expect(listed.tools.filter((tool) => writeToolNames.includes(tool.name as (typeof writeToolNames)[number])).every((tool) => tool.annotations?.readOnlyHint === false)).toBe(true);
+    const result = await client.callTool({
+      name: "create_task",
+      arguments: {
+        title: "Prepare client handoff",
+        priority: "high",
+        project_id: null,
+        due_at: null,
+        estimate_minutes: 45,
+        tags: ["client"],
+        idempotency_key: "test.create-task.001",
+      },
+    });
+    expect(result.isError).not.toBe(true);
+    expect(execute).toHaveBeenCalledWith("create_task", expect.objectContaining({ title: "Prepare client handoff" }));
+
+    await client.close();
+    await server.close();
+  });
+
+  it("returns 401 for a domain action without a user session", async () => {
+    const { POST } = await import("@/app/api/mcp/action/[tool]/route");
+    const response = await POST(
+      new Request("http://localhost/api/mcp/action/create_task", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: "{}",
+      }),
+      { params: Promise.resolve({ tool: "create_task" }) },
+    );
+    expect(response.status).toBe(401);
+  });
+
+  it("rejects stale-write actions that omit the expected version before repository access", async () => {
+    const execute = vi.fn();
+    const service = new PersonalOsWriteService({ userId: "seed-user", execute });
+    await expect(service.execute("complete_task", {
+      task_id: "11111111-1111-4111-8111-111111111111",
+      idempotency_key: "test.complete.001",
+    })).rejects.toThrow();
+    expect(execute).not.toHaveBeenCalled();
   });
 });

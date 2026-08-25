@@ -1,8 +1,8 @@
 import { z } from "zod";
 
 export const changeOperationInput = z.object({
-  entity: z.enum(["task", "project", "calendar_block", "work_session"]),
-  action: z.enum(["create", "update", "complete", "reschedule"]),
+  entity: z.enum(["task", "project", "calendar_block", "work_session", "habit"]),
+  action: z.enum(["create", "update", "complete", "reschedule", "start", "end", "log"]),
   entityId: z.uuid().nullable().default(null),
   expectedVersion: z.number().int().positive().optional(),
   summary: z.string().trim().min(1).max(240),

@@ -41,6 +41,7 @@ export function weekStartFor(date: string) {
 function compactTask(task: Task, projectNames: Map<string, string>) {
   return {
     id: task.id,
+    version: task.version ?? 1,
     title: task.title,
     project: task.projectId ? projectNames.get(task.projectId) ?? null : null,
     status: task.status,
@@ -71,6 +72,10 @@ function scheduleForDate(state: WorkspaceState, date: string) {
   const conflicts = findConflicts(items);
   return items.map((item) => ({
     id: item.id,
+    version:
+      item.kind === "task"
+        ? state.tasks.find((task) => task.id === item.id)?.version ?? 1
+        : state.calendarBlocks.find((block) => block.id === item.id)?.version ?? 1,
     type: item.kind === "task" ? "task" : "calendar_block",
     kind: item.kind,
     title: item.title,
@@ -136,6 +141,7 @@ function habitsForDate(state: WorkspaceState, date: string) {
     const value = habitValue(habit, state.habitLogs, date);
     return {
       id: habit.id,
+      version: habit.version ?? 1,
       name: habit.name,
       metric: habit.metric,
       target: habit.targetValue,
@@ -231,7 +237,7 @@ export function buildWorkSessions(state: WorkspaceState, input: { start?: string
   return {
     meta: meta(state),
     summary: { sessions: sessions.length, focused_minutes: sessions.reduce((sum, session) => sum + session.durationMinutes, 0), running: sessions.some((session) => session.status === "running") },
-    sessions: sessions.map((session) => ({ id: session.id, task: session.taskId ? tasks.get(session.taskId) ?? null : null, project: session.projectId ? projects.get(session.projectId) ?? null : null, started_at: session.startedAt, ended_at: session.endedAt, duration_minutes: session.durationMinutes, status: session.status, outcome: session.outcome })),
+    sessions: sessions.map((session) => ({ id: session.id, version: session.version ?? 1, task: session.taskId ? tasks.get(session.taskId) ?? null : null, project: session.projectId ? projects.get(session.projectId) ?? null : null, started_at: session.startedAt, ended_at: session.endedAt, duration_minutes: session.durationMinutes, status: session.status, outcome: session.outcome })),
   };
 }
 
@@ -241,7 +247,13 @@ export function buildHabits(state: WorkspaceState, date: string, days: number) {
     meta: meta(state),
     date,
     summary: { habits: state.habits.length, complete: habitsForDate(state, date).filter((habit) => habit.complete).length, average_consistency: state.habits.length ? Math.round(state.habits.reduce((sum, habit) => sum + habitConsistency(habit, state.habitLogs, date, days), 0) / state.habits.length) : 0 },
-    habits: habitsForDate(state, date).map((habit) => ({ ...habit, history: dates.map((historyDate) => ({ date: historyDate, value: habitValue(state.habits.find((item) => item.id === habit.id) as Habit, state.habitLogs, historyDate) })) })),
+    habits: habitsForDate(state, date).map((habit) => ({
+      ...habit,
+      history: dates.map((historyDate) => {
+        const log = state.habitLogs.find((item) => item.habitId === habit.id && item.date === historyDate);
+        return { date: historyDate, value: log?.value ?? 0, log_id: log?.id ?? null, version: log?.version ?? null };
+      }),
+    })),
   };
 }
 

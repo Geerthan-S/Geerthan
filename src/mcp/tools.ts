@@ -56,7 +56,62 @@ export const readToolSchemas = {
 } as const;
 
 export type ReadToolName = keyof typeof readToolSchemas;
-export type McpPermission = "state:read";
+const idempotencyKey = z.string().trim().min(8).max(180).regex(/^[A-Za-z0-9._:-]+$/);
+const entityId = z.uuid();
+const expectedVersion = z.number().int().positive();
+const dateTime = z.iso.datetime({ offset: true });
+
+export const writeToolSchemas = {
+  create_task: z.object({
+    title: z.string().trim().min(1).max(240),
+    priority: priority.default("medium"),
+    project_id: entityId.nullable().default(null),
+    due_at: dateTime.nullable().default(null),
+    estimate_minutes: z.number().int().min(1).max(10080).default(30),
+    tags: z.array(z.string().trim().min(1).max(40)).max(20).default([]),
+    idempotency_key: idempotencyKey,
+  }).strict(),
+  update_task: z.object({
+    task_id: entityId,
+    expected_version: expectedVersion,
+    patch: z.object({
+      title: z.string().trim().min(1).max(240).optional(),
+      priority: priority.optional(),
+      project_id: entityId.nullable().optional(),
+      due_at: dateTime.nullable().optional(),
+      estimate_minutes: z.number().int().min(1).max(10080).optional(),
+      tags: z.array(z.string().trim().min(1).max(40)).max(20).optional(),
+    }).strict().refine((value) => Object.keys(value).length > 0, "patch must contain at least one supported field"),
+    idempotency_key: idempotencyKey,
+  }).strict(),
+  complete_task: z.object({ task_id: entityId, expected_version: expectedVersion, idempotency_key: idempotencyKey }).strict(),
+  reschedule_task: z.object({ task_id: entityId, expected_version: expectedVersion, starts_at: dateTime, ends_at: dateTime, idempotency_key: idempotencyKey }).strict()
+    .refine((value) => Date.parse(value.ends_at) > Date.parse(value.starts_at), { path: ["ends_at"], message: "ends_at must be after starts_at" }),
+  start_work_session: z.object({ task_id: entityId, expected_task_version: expectedVersion, idempotency_key: idempotencyKey }).strict(),
+  end_work_session: z.object({ session_id: entityId, expected_version: expectedVersion, outcome: z.string().trim().max(1200).default(""), idempotency_key: idempotencyKey }).strict(),
+  log_habit: z.object({ habit_id: entityId, date: isoDate, value: z.number().min(0).max(1_000_000), note: z.string().trim().max(500).default(""), expected_log_version: expectedVersion.nullable().default(null), idempotency_key: idempotencyKey }).strict(),
+  create_time_block: z.object({ title: z.string().trim().min(1).max(180), kind: z.enum(["meeting", "focus", "personal", "break"]), starts_at: dateTime, ends_at: dateTime, notes: z.string().trim().max(1200).default(""), idempotency_key: idempotencyKey }).strict()
+    .refine((value) => Date.parse(value.ends_at) > Date.parse(value.starts_at), { path: ["ends_at"], message: "ends_at must be after starts_at" }),
+  update_time_block: z.object({
+    time_block_id: entityId,
+    expected_version: expectedVersion,
+    patch: z.object({
+      title: z.string().trim().min(1).max(180).optional(),
+      kind: z.enum(["meeting", "focus", "personal", "break"]).optional(),
+      starts_at: dateTime.optional(),
+      ends_at: dateTime.optional(),
+      notes: z.string().trim().max(1200).optional(),
+    }).strict().refine((value) => Object.keys(value).length > 0, "patch must contain at least one supported field"),
+    idempotency_key: idempotencyKey,
+  }).strict(),
+  draft_day_plan: z.object({ date: isoDate, include_overdue: z.boolean().default(true), idempotency_key: idempotencyKey }).strict(),
+  commit_change_set: z.object({ change_set_id: entityId, idempotency_key: idempotencyKey }).strict(),
+  discard_change_set: z.object({ change_set_id: entityId, idempotency_key: idempotencyKey }).strict(),
+  undo_change_set: z.object({ change_set_id: entityId, idempotency_key: idempotencyKey }).strict(),
+} as const;
+
+export type WriteToolName = keyof typeof writeToolSchemas;
+export type McpPermission = "state:read" | "state:write" | "plan:draft" | "plan:commit" | "plan:undo";
 
 export interface ReadToolDefinition {
   name: ReadToolName;
@@ -64,6 +119,15 @@ export interface ReadToolDefinition {
   permission: McpPermission;
   input: z.ZodType;
   exampleInput: Record<string, unknown>;
+  endpoint: string;
+  method: "POST";
+}
+
+export interface WriteToolDefinition {
+  name: WriteToolName;
+  description: string;
+  permission: Exclude<McpPermission, "state:read">;
+  input: z.ZodType;
   endpoint: string;
   method: "POST";
 }
@@ -99,10 +163,35 @@ export const personalOsTools: Record<ReadToolName, ReadToolDefinition> = {
 };
 
 export const readToolNames = Object.keys(readToolSchemas) as ReadToolName[];
+export const writeToolNames = Object.keys(writeToolSchemas) as WriteToolName[];
 
 export function isReadToolName(value: string): value is ReadToolName {
   return value in readToolSchemas;
 }
+
+export function isWriteToolName(value: string): value is WriteToolName {
+  return value in writeToolSchemas;
+}
+
+function writeTool(name: WriteToolName, description: string, permission: WriteToolDefinition["permission"] = "state:write"): WriteToolDefinition {
+  return { name, description, permission, input: writeToolSchemas[name], endpoint: `/api/mcp/action/${name}`, method: "POST" };
+}
+
+export const personalOsWriteTools: Record<WriteToolName, WriteToolDefinition> = {
+  create_task: writeTool("create_task", "Create one validated task for the authenticated user with an idempotency receipt and activity event."),
+  update_task: writeTool("update_task", "Update supported task fields after checking the expected record version."),
+  complete_task: writeTool("complete_task", "Complete an open task after a stale-write version check."),
+  reschedule_task: writeTool("reschedule_task", "Move a task to a conflict-free time range after a stale-write version check."),
+  start_work_session: writeTool("start_work_session", "Start one work session for an eligible task when no other session is running."),
+  end_work_session: writeTool("end_work_session", "End a running work session and record its outcome after a version check."),
+  log_habit: writeTool("log_habit", "Create or update one daily habit check-in with retry and stale-write protection."),
+  create_time_block: writeTool("create_time_block", "Create one conflict-free calendar block for the authenticated user."),
+  update_time_block: writeTool("update_time_block", "Update a time block after validating ownership, version, fields, and conflicts."),
+  draft_day_plan: writeTool("draft_day_plan", "Create a reviewable daily-plan change set without applying its proposed schedule.", "plan:draft"),
+  commit_change_set: writeTool("commit_change_set", "Commit an authenticated draft after locking it and checking every expected entity version.", "plan:commit"),
+  discard_change_set: writeTool("discard_change_set", "Discard a draft without applying any of its operations.", "plan:commit"),
+  undo_change_set: writeTool("undo_change_set", "Reverse supported operations in a committed change set after stale-write checks.", "plan:undo"),
+};
 
 export const readToolManifest = readToolNames.map((name) => {
   const definition = personalOsTools[name];
@@ -114,5 +203,17 @@ export const readToolManifest = readToolNames.map((name) => {
     method: definition.method,
     inputSchema: z.toJSONSchema(definition.input),
     exampleInput: definition.exampleInput,
+  };
+});
+
+export const writeToolManifest = writeToolNames.map((name) => {
+  const definition = personalOsWriteTools[name];
+  return {
+    name: definition.name,
+    description: definition.description,
+    permission: definition.permission,
+    endpoint: definition.endpoint,
+    method: definition.method,
+    inputSchema: z.toJSONSchema(definition.input),
   };
 });

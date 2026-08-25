@@ -39,6 +39,7 @@ export function mapProfile(row: Row, email: string): WorkspaceProfile {
 export function mapProject(row: Row): Project {
   return {
     id: text(row.id),
+    version: numberValue(row.version, 1),
     name: text(row.name),
     code: text(row.code),
     description: text(row.description),
@@ -56,6 +57,7 @@ export function mapTask(row: Row): Task {
   const source = text(row.source, "web");
   return {
     id: text(row.id),
+    version: numberValue(row.version, 1),
     title: text(row.title),
     projectId: nullableText(row.project_id),
     status: text(row.status, "planned") as Task["status"],
@@ -76,6 +78,7 @@ export function mapTask(row: Row): Task {
 export function mapSession(row: Row): WorkSession {
   return {
     id: text(row.id),
+    version: numberValue(row.version, 1),
     taskId: nullableText(row.task_id),
     projectId: nullableText(row.project_id),
     startedAt: text(row.started_at),
@@ -99,6 +102,7 @@ export function mapInboxItem(row: Row): InboxItem {
 export function mapActivity(row: Row): ActivityEvent {
   const knownTypes: ActivityEvent["type"][] = [
     "task_created",
+    "task_updated",
     "task_completed",
     "task_reopened",
     "session_started",
@@ -109,6 +113,8 @@ export function mapActivity(row: Row): ActivityEvent {
     "changeset_discarded",
     "task_scheduled",
     "calendar_block_created",
+    "calendar_block_updated",
+    "changeset_reversed",
     "habit_checked_in",
   ];
   const eventType = text(row.event_type);
@@ -173,6 +179,7 @@ export function mapChangeSet(row: Row): ChangeSet {
 export function mapCalendarBlock(row: Row): CalendarBlock {
   return {
     id: text(row.id),
+    version: numberValue(row.version, 1),
     title: text(row.title),
     kind: text(row.kind, "focus") as CalendarBlock["kind"],
     startsAt: text(row.starts_at),
@@ -185,6 +192,7 @@ export function mapCalendarBlock(row: Row): CalendarBlock {
 export function mapHabit(row: Row): Habit {
   return {
     id: text(row.id),
+    version: numberValue(row.version, 1),
     name: text(row.name),
     description: text(row.description),
     metric: text(row.metric, "boolean") as Habit["metric"],
@@ -199,6 +207,7 @@ export function mapHabit(row: Row): Habit {
 export function mapHabitLog(row: Row): HabitLog {
   return {
     id: text(row.id),
+    version: numberValue(row.version, 1),
     habitId: text(row.habit_id),
     date: text(row.log_date),
     value: numberValue(row.value),

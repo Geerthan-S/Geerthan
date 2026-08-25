@@ -10,6 +10,7 @@ export type ProjectHealth = "on_track" | "at_risk" | "blocked";
 
 export interface Project {
   id: string;
+  version?: number;
   name: string;
   code: string;
   description: string;
@@ -24,6 +25,7 @@ export interface Project {
 
 export interface Task {
   id: string;
+  version?: number;
   title: string;
   projectId: string | null;
   status: TaskStatus;
@@ -40,6 +42,7 @@ export interface Task {
 
 export interface WorkSession {
   id: string;
+  version?: number;
   taskId: string | null;
   projectId: string | null;
   startedAt: string;
@@ -61,6 +64,7 @@ export interface ActivityEvent {
   id: string;
   type:
     | "task_created"
+    | "task_updated"
     | "task_completed"
     | "task_reopened"
     | "session_started"
@@ -71,6 +75,8 @@ export interface ActivityEvent {
     | "changeset_discarded"
     | "task_scheduled"
     | "calendar_block_created"
+    | "calendar_block_updated"
+    | "changeset_reversed"
     | "habit_checked_in";
   summary: string;
   detail: string;
@@ -80,12 +86,12 @@ export interface ActivityEvent {
   undoable: boolean;
 }
 
-export type ChangeSetStatus = "draft" | "committed" | "discarded";
+export type ChangeSetStatus = "draft" | "committed" | "discarded" | "reversed";
 
 export interface ChangeOperation {
   id: string;
-  entity: "task" | "project" | "calendar_block" | "work_session";
-  action: "create" | "update" | "complete" | "reschedule";
+  entity: "task" | "project" | "calendar_block" | "work_session" | "habit";
+  action: "create" | "update" | "complete" | "reschedule" | "start" | "end" | "log";
   entityId: string | null;
   summary: string;
   before: Record<string, unknown> | null;
@@ -109,6 +115,7 @@ export type CalendarBlockKind = "meeting" | "focus" | "personal" | "break";
 
 export interface CalendarBlock {
   id: string;
+  version?: number;
   title: string;
   kind: CalendarBlockKind;
   startsAt: string;
@@ -121,6 +128,7 @@ export type HabitMetric = "boolean" | "duration" | "count" | "numeric";
 
 export interface Habit {
   id: string;
+  version?: number;
   name: string;
   description: string;
   metric: HabitMetric;
@@ -133,6 +141,7 @@ export interface Habit {
 
 export interface HabitLog {
   id: string;
+  version?: number;
   habitId: string;
   date: string;
   value: number;

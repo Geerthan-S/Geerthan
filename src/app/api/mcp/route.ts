@@ -1,7 +1,9 @@
 import { createMcpHandler, requireBearerAuth } from "@modelcontextprotocol/server";
 import { createBearerSupabaseClient } from "@/data/supabase/request-auth";
 import { SupabaseWorkspaceReadRepository } from "@/data/supabase/supabase-workspace-read-repository";
+import { SupabaseDomainActionRepository } from "@/data/supabase/supabase-domain-action-repository";
 import { PersonalOsReadService } from "@/mcp/personal-os-read-service";
+import { PersonalOsWriteService } from "@/mcp/personal-os-write-service";
 import { consumeReadQuota } from "@/mcp/read-rate-limit";
 import { createPersonalOsMcpServer } from "@/mcp/server";
 import { supabaseTokenVerifier } from "@/mcp/supabase-token-verifier";
@@ -23,7 +25,11 @@ const handler = createMcpHandler(
       id: authInfo.clientId,
       email: typeof authInfo.extra?.email === "string" ? authInfo.extra.email : undefined,
     });
-    return createPersonalOsMcpServer(new PersonalOsReadService(repository));
+    const writeRepository = new SupabaseDomainActionRepository(client, authInfo.clientId);
+    return createPersonalOsMcpServer(
+      new PersonalOsReadService(repository),
+      authInfo.scopes.includes("personal-os:write") ? new PersonalOsWriteService(writeRepository) : undefined,
+    );
   },
   {
     legacy: "stateless",

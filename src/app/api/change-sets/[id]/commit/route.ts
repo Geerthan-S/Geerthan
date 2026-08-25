@@ -16,8 +16,9 @@ export async function POST(
     const repository = new SupabaseChangeSetRepository(client, data.user.id);
     return NextResponse.json({ data: await repository.commit(id) });
   } catch (commitError) {
+    console.error("Change-set commit failed", commitError instanceof Error ? commitError.name : "UnknownError");
     return NextResponse.json(
-      { error: "commit_failed", detail: commitError instanceof Error ? commitError.message : "Unknown error" },
+      { error: "commit_failed" },
       { status: 409 },
     );
   }
