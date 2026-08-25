@@ -96,6 +96,10 @@ export function mapInboxItem(row: Row): InboxItem {
     note: text(row.note),
     createdAt: text(row.created_at),
     triaged: Boolean(row.triaged),
+    suggestedKind: nullableText(row.suggested_kind) as InboxItem["suggestedKind"],
+    suggestedPriority: nullableText(row.suggested_priority) as InboxItem["suggestedPriority"],
+    suggestionConfidence: typeof row.suggestion_confidence === "number" ? row.suggestion_confidence : row.suggestion_confidence ? Number(row.suggestion_confidence) : null,
+    suggestionReason: text(row.suggestion_reason),
   };
 }
 

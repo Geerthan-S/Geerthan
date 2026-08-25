@@ -1,6 +1,7 @@
 import { ZodError } from "zod";
 import { authenticateReadRequest } from "@/data/supabase/request-auth";
 import { SupabaseWorkspaceReadRepository } from "@/data/supabase/supabase-workspace-read-repository";
+import { SupabaseProductPlanningContextRepository } from "@/data/supabase/supabase-product-planning-context-repository";
 import { PersonalOsReadService } from "@/mcp/personal-os-read-service";
 import { consumeReadQuota } from "@/mcp/read-rate-limit";
 import { isReadToolName } from "@/mcp/tools";
@@ -44,7 +45,7 @@ export async function POST(request: Request, context: { params: Promise<{ tool: 
     if (new TextEncoder().encode(text).byteLength > MAX_BODY_BYTES) return json({ error: "Request body is too large." }, 413);
     const input: unknown = text.trim() ? JSON.parse(text) : {};
     const repository = new SupabaseWorkspaceReadRepository(auth.client, auth.user);
-    const data = await new PersonalOsReadService(repository).execute(tool, input);
+    const data = await new PersonalOsReadService(repository,new SupabaseProductPlanningContextRepository(auth.client,auth.user.id)).execute(tool, input);
     return json(
       { tool, source: "supabase", data },
       200,

@@ -22,6 +22,7 @@ import { ChangeSetReview } from "@/features/changesets/components/change-set-rev
 import { TaskRow } from "@/features/tasks/components/task-row";
 import { useWorkspace } from "@/features/workspace/workspace-provider";
 import { PageHeader } from "@/features/workspace/components/page-header";
+import { DashboardIntelligence } from "@/features/dashboard/components/dashboard-intelligence";
 import { Button } from "@/shared/components/ui/button";
 import { GlassPanel } from "@/shared/components/ui/glass-panel";
 import { formatMinutes, formatShortDate } from "@/shared/lib/utils";
@@ -86,6 +87,8 @@ export function DashboardView() {
           <Link className="metric-link" href="/inbox">Triage <ArrowRight size={13} /></Link>
         </GlassPanel>
       </section>
+
+      <DashboardIntelligence />
 
       {running && runningTask ? (
         <GlassPanel className="running-focus-banner">

@@ -51,7 +51,7 @@ export function InboxView() {
             {open.map((item) => (
               <article className="inbox-item" key={item.id}>
                 <span className="inbox-bullet" />
-                <div><strong>{item.title}</strong>{item.note ? <p>{item.note}</p> : null}<small>{relativeTime(item.createdAt)}</small></div>
+                <div><strong>{item.title}</strong>{item.note ? <p>{item.note}</p> : null}{item.suggestedKind?<span className="capture-suggestion"><Lightbulb size={11}/>{item.suggestedKind.replaceAll("_"," ")} · {item.suggestedPriority} · {Math.round((item.suggestionConfidence??0)*100)}%</span>:null}<small>{relativeTime(item.createdAt)}</small></div>
                 <Button variant="secondary" size="sm" onClick={() => actions.promoteCapture(item.id)}>Make task <ArrowRight size={13} /></Button>
               </article>
             ))}

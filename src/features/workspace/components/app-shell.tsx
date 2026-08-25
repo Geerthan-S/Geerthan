@@ -4,6 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Activity,
+  BarChart3,
+  Bell,
   BriefcaseBusiness,
   Braces,
   CalendarDays,
@@ -19,6 +21,7 @@ import {
   Menu,
   Play,
   Search,
+  Settings2,
   Repeat2,
   TimerReset,
   X,
@@ -36,12 +39,15 @@ const navigation = [
   { href: "/habits", label: "Habits", icon: Repeat2 },
   { href: "/growth", label: "Growth", icon: BrainCircuit },
   { href: "/academics", label: "Academics", icon: GraduationCap },
+  { href: "/analytics", label: "Analytics", icon: BarChart3 },
+  { href: "/notifications", label: "Notifications", icon: Bell },
   { href: "/projects", label: "Projects", icon: FolderKanban },
   { href: "/tasks", label: "Tasks", icon: CheckSquare2 },
   { href: "/sessions", label: "Work sessions", icon: TimerReset },
   { href: "/inbox", label: "Inbox", icon: Inbox },
   { href: "/activity", label: "Activity", icon: Activity },
   { href: "/mcp-diagnostics", label: "MCP diagnostics", icon: Braces },
+  { href: "/settings", label: "Settings", icon: Settings2 },
 ];
 
 function Brand() {

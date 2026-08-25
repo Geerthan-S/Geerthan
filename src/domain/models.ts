@@ -58,6 +58,10 @@ export interface InboxItem {
   note: string;
   createdAt: string;
   triaged: boolean;
+  suggestedKind?: "task" | "meeting" | "idea" | "follow_up" | "learning" | "finance" | "academic" | null;
+  suggestedPriority?: Priority | null;
+  suggestionConfidence?: number | null;
+  suggestionReason?: string;
 }
 
 export interface ActivityEvent {

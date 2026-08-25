@@ -2,6 +2,7 @@ import { createMcpHandler, requireBearerAuth } from "@modelcontextprotocol/serve
 import { createBearerSupabaseClient } from "@/data/supabase/request-auth";
 import { SupabaseWorkspaceReadRepository } from "@/data/supabase/supabase-workspace-read-repository";
 import { SupabaseDomainActionRepository } from "@/data/supabase/supabase-domain-action-repository";
+import { SupabaseProductPlanningContextRepository } from "@/data/supabase/supabase-product-planning-context-repository";
 import { PersonalOsReadService } from "@/mcp/personal-os-read-service";
 import { PersonalOsWriteService } from "@/mcp/personal-os-write-service";
 import { consumeReadQuota } from "@/mcp/read-rate-limit";
@@ -27,7 +28,7 @@ const handler = createMcpHandler(
     });
     const writeRepository = new SupabaseDomainActionRepository(client, authInfo.clientId);
     return createPersonalOsMcpServer(
-      new PersonalOsReadService(repository),
+      new PersonalOsReadService(repository,new SupabaseProductPlanningContextRepository(client,authInfo.clientId)),
       authInfo.scopes.includes("personal-os:write") ? new PersonalOsWriteService(writeRepository) : undefined,
     );
   },
