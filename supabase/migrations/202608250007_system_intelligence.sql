@@ -184,16 +184,16 @@ from public.tasks t left join public.goals g on g.id = t.goal_id and g.user_id =
 where t.status in ('inbox','planned','in_progress','blocked');
 
 create or replace view public.personal_os_daily_analytics with (security_invoker = true) as
-with days as (select generate_series(current_date - 29, current_date, interval '1 day')::date as day),
-task_data as (select user_id, completed_at::date day, count(*) completed_tasks from public.tasks where completed_at >= current_date - 29 group by user_id, completed_at::date),
-session_data as (select user_id, started_at::date day, sum(duration_minutes) focus_minutes from public.work_sessions where started_at >= current_date - 29 group by user_id, started_at::date),
-habit_data as (select l.user_id, l.log_date day, count(*) filter (where l.value >= h.target_value) completed_habits, count(*) habit_logs from public.habit_logs l join public.habits h on h.id = l.habit_id where l.log_date >= current_date - 29 group by l.user_id, l.log_date)
-select p.id user_id, d.day, coalesce(t.completed_tasks,0) completed_tasks, coalesce(s.focus_minutes,0) focus_minutes,
+with days as (select generate_series(current_date - 29, current_date, interval '1 day')::date as metric_date),
+task_data as (select user_id, completed_at::date as metric_date, count(*) completed_tasks from public.tasks where completed_at >= current_date - 29 group by user_id, completed_at::date),
+session_data as (select user_id, started_at::date as metric_date, sum(duration_minutes) focus_minutes from public.work_sessions where started_at >= current_date - 29 group by user_id, started_at::date),
+habit_data as (select l.user_id, l.log_date as metric_date, count(*) filter (where l.value >= h.target_value) completed_habits, count(*) habit_logs from public.habit_logs l join public.habits h on h.id = l.habit_id where l.log_date >= current_date - 29 group by l.user_id, l.log_date)
+select p.id user_id, d.metric_date as day, coalesce(t.completed_tasks,0) completed_tasks, coalesce(s.focus_minutes,0) focus_minutes,
   coalesce(h.completed_habits,0) completed_habits, coalesce(h.habit_logs,0) habit_logs
 from public.profiles p cross join days d
-left join task_data t on t.user_id = p.id and t.day = d.day
-left join session_data s on s.user_id = p.id and s.day = d.day
-left join habit_data h on h.user_id = p.id and h.day = d.day;
+left join task_data t on t.user_id = p.id and t.metric_date = d.metric_date
+left join session_data s on s.user_id = p.id and s.metric_date = d.metric_date
+left join habit_data h on h.user_id = p.id and h.metric_date = d.metric_date;
 
 create or replace function public.initialize_system_workspace()
 returns void language plpgsql security invoker set search_path = public as $$
