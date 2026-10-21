@@ -1,20 +1,22 @@
 "use client";
-import { Cable, CheckCircle2, Clock3, Settings2, ShieldCheck } from "lucide-react";
+import { Cable, CheckCircle2, ShieldCheck } from "lucide-react";
 import { connectorDefinitions } from "@/integrations/catalog";
+import { AccountSettings } from "@/features/settings/components/account-settings";
 import { PageHeader } from "@/features/workspace/components/page-header";
 import { useSystemData } from "@/features/system/use-system-data";
 import { GlassPanel } from "@/shared/components/ui/glass-panel";
 const label = (value: string) => value.replaceAll("_", " ");
 export function SettingsView() {
-  const { data, error } = useSystemData();
+  const { data, error, reload } = useSystemData();
   return (
     <div className="page-stack">
       <PageHeader
         eyebrow="Settings"
-        title="Boundaries, preferences and connector readiness."
-        description="Every integration is explicit. Nothing contacts an external service until its credentials and permissions are configured."
+        title="Your account, preferences and connections."
+        description="Edit how your days are shaped, choose what AI assistants may do, and take your data with you."
       />
       {error ? <div className="workspace-error">{error}</div> : null}
+      <AccountSettings planning={data?.planningPreferences ?? null} onPlanningSaved={reload} />
       <div className="settings-assurance">
         <GlassPanel>
           <ShieldCheck />
@@ -70,44 +72,6 @@ export function SettingsView() {
             })}
           </div>
         </GlassPanel>
-        <div className="settings-stack">
-          <GlassPanel className="settings-card">
-            <Settings2 />
-            <div>
-              <span className="eyebrow">Planning defaults</span>
-              <h2>Workday shape</h2>
-            </div>
-            <dl>
-              <div>
-                <dt>Working hours</dt>
-                <dd>
-                  {data?.planningPreferences.workdayStart ?? "09:00"} –{" "}
-                  {data?.planningPreferences.workdayEnd ?? "19:00"}
-                </dd>
-              </div>
-              <div>
-                <dt>Deep work block</dt>
-                <dd>{data?.planningPreferences.deepWorkMinutes ?? 90} min</dd>
-              </div>
-              <div>
-                <dt>Break</dt>
-                <dd>{data?.planningPreferences.breakMinutes ?? 15} min</dd>
-              </div>
-            </dl>
-          </GlassPanel>
-          <GlassPanel className="settings-card">
-            <Clock3 />
-            <div>
-              <span className="eyebrow">Quiet hours</span>
-              <h2>Protect recovery</h2>
-            </div>
-            <p>
-              {data?.planningPreferences.quietHoursStart ?? "22:00"} –{" "}
-              {data?.planningPreferences.quietHoursEnd ?? "07:00"}
-            </p>
-            <small>Push delivery should be deferred during this window.</small>
-          </GlassPanel>
-        </div>
       </div>
     </div>
   );

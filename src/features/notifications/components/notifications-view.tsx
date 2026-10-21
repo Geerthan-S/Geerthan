@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
-import { Bell, CheckCheck, Clock3, Radio } from "lucide-react";
+import { Bell, CheckCheck, Clock3, Radio, Send } from "lucide-react";
+import { useState } from "react";
 import { PageHeader } from "@/features/workspace/components/page-header";
 import { useSystemData } from "@/features/system/use-system-data";
 import { Button } from "@/shared/components/ui/button";
@@ -13,10 +14,25 @@ function applicationKey(value: string) {
 
 export function NotificationsView() {
   const { data, error, saving, act } = useSystemData();
+  const [pushMessage, setPushMessage] = useState("");
   async function enablePush() {
     const key = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-    if (!key || !("serviceWorker" in navigator) || !("PushManager" in window)) return;
-    if ((await Notification.requestPermission()) !== "granted") return;
+    if (!key) return;
+    if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
+      setPushMessage(
+        "This browser doesn't support push. On iPhone, add Personal OS to your Home Screen first, then open it from there.",
+      );
+      return;
+    }
+    const permission = await Notification.requestPermission();
+    if (permission !== "granted") {
+      setPushMessage(
+        permission === "denied"
+          ? "Notifications are blocked for this site. Allow them in your browser's site settings, then try again."
+          : "Notifications weren't allowed.",
+      );
+      return;
+    }
     const registration = await navigator.serviceWorker.ready;
     const subscription = await registration.pushManager.subscribe({
       userVisibleOnly: true,
@@ -31,6 +47,23 @@ export function NotificationsView() {
       user_agent: navigator.userAgent,
     });
     await act("update_notification_preferences", { push_enabled: true });
+    setPushMessage("Push is on for this device.");
+  }
+  async function sendTestPush() {
+    setPushMessage("");
+    const response = await fetch("/api/push/test", { method: "POST" });
+    const body = (await response.json().catch(() => ({}))) as { error?: string; delivered?: number };
+    if (response.ok) {
+      setPushMessage(
+        body.delivered ? "Test sent. It should appear in a few seconds." : "No device accepted the test.",
+      );
+    } else if (body.error === "no_subscriptions") {
+      setPushMessage("No device is subscribed yet. Enable browser push first.");
+    } else if (body.error === "push_not_configured") {
+      setPushMessage("The server is missing its VAPID keys, so it can't send pushes yet.");
+    } else {
+      setPushMessage("The test notification couldn't be sent.");
+    }
   }
   return (
     <div className="page-stack">
@@ -86,13 +119,24 @@ export function NotificationsView() {
             offline cache.
           </p>
           {process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ? (
-            <Button variant="secondary" onClick={enablePush} disabled={saving}>
-              <Radio size={14} />
-              Enable browser push
-            </Button>
+            <div className="push-actions">
+              <Button variant="secondary" onClick={enablePush} disabled={saving}>
+                <Radio size={14} />
+                Enable browser push
+              </Button>
+              <Button variant="ghost" onClick={sendTestPush}>
+                <Send size={14} />
+                Send test
+              </Button>
+            </div>
           ) : (
             <div className="push-unavailable">VAPID configuration required</div>
           )}
+          {pushMessage ? (
+            <p className="settings-status" role="status">
+              {pushMessage}
+            </p>
+          ) : null}
           {data ? (
             <>
               <Toggle

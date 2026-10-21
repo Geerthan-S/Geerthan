@@ -7,7 +7,7 @@ import { useState, type FormEvent } from "react";
 import { createSupabaseBrowserClient } from "@/data/supabase/client";
 import { Button } from "@/shared/components/ui/button";
 
-export function SignInForm({ configured }: { configured: boolean }) {
+export function SignInForm({ configured, notice }: { configured: boolean; notice?: string }) {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -50,6 +50,11 @@ export function SignInForm({ configured }: { configured: boolean }) {
           <h1>Return to focused work.</h1>
           <p>Your projects, plans, and activity stay behind your authenticated Supabase workspace.</p>
         </div>
+        {notice ? (
+          <p className="form-notice" role="status">
+            {notice}
+          </p>
+        ) : null}
         {configured ? (
           <form onSubmit={signIn} className="login-form">
             <label>

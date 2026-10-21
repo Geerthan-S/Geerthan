@@ -115,14 +115,14 @@ function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
           <Play size={16} fill="currentColor" />
         </Link>
       ) : null}
-      <div className="sidebar-profile">
-        <span className="avatar">G</span>
+      <Link href="/settings" className="sidebar-profile" onClick={onNavigate} aria-label="Account settings">
+        <span className="avatar">{state.profile.name.trim().charAt(0).toUpperCase() || "?"}</span>
         <div>
           <strong>{state.profile.name}</strong>
           <small>{mode === "supabase" ? "Live Supabase" : "Local preview"}</small>
         </div>
         <CircleUserRound size={18} />
-      </div>
+      </Link>
     </div>
   );
 }

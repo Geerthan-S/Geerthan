@@ -47,5 +47,12 @@ export function useSystemData() {
       setSaving(false);
     }
   }
-  return { data, error, saving, act };
+  async function reload() {
+    try {
+      setData(await load());
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Reload failed.");
+    }
+  }
+  return { data, error, saving, act, reload };
 }

@@ -48,6 +48,8 @@ interface WorkspaceActions {
   updateHabit(habitId: string, expectedVersion: number, input: HabitUpdateInput): Promise<boolean>;
   setHabitActive(habitId: string, active: boolean): Promise<boolean>;
   reorderHabits(orderedHabitIds: string[]): Promise<boolean>;
+  /** Re-reads the workspace, e.g. after settings saved outside the repository. */
+  reload(): Promise<boolean>;
   reset(): Promise<boolean>;
 }
 
@@ -126,6 +128,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
         run(() => repository.updateHabit(habitId, expectedVersion, input)),
       setHabitActive: (habitId, active) => run(() => repository.setHabitActive(habitId, active)),
       reorderHabits: (orderedHabitIds) => run(() => repository.reorderHabits(orderedHabitIds)),
+      reload: () => run(() => repository.load()),
       reset: () => run(() => repository.reset()),
     }),
     [repository, run],
