@@ -16,6 +16,8 @@ Copy `.env.example` to the ignored `.env.local` file and provide:
 - `NEXT_PUBLIC_VAPID_PUBLIC_KEY` — optional browser-push public key.
 - `VAPID_PRIVATE_KEY` — optional server-only push key; never expose it to the browser.
 - `VAPID_SUBJECT` — optional push contact URI such as `mailto:you@example.com`.
+- `CRON_SECRET` and `SUPABASE_SECRET_KEY` — optional, server-only; needed for scheduled push delivery.
+- `ERROR_WEBHOOK_URL` — optional JSON endpoint that receives server and browser errors.
 
 Apply every migration in `supabase/migrations` in filename order. In Supabase Auth, set the local Site URL to `http://localhost:3000` and allow `http://localhost:3000/auth/callback`.
 
@@ -47,7 +49,32 @@ External providers never receive arbitrary database access. Their adapters norma
 ## Validation
 
 ```powershell
-npm run validate
+npm run validate       # formatting, unit tests, types, lint, production build
+npm run test:e2e       # Playwright, desktop and mobile, against the production build
+npm run test:db        # migrations + SQL tests; needs DATABASE_URL (see below)
 ```
 
-This runs automated tests, TypeScript, ESLint and the production build.
+`test:db` needs a disposable Supabase Postgres database:
+
+```bash
+docker run -d --name personal-os-db -e POSTGRES_PASSWORD=postgres -p 54329:5432 supabase/postgres:17.11.0.004
+DATABASE_URL=postgres://postgres:postgres@localhost:54329/postgres npm run test:db
+```
+
+CI (`.github/workflows/ci.yml`) runs all three on every pull request.
+
+## Production checklist
+
+1. **Database** — apply every file in `supabase/migrations` in order (`supabase db push`, or the SQL editor). Turn on daily backups and point-in-time recovery in the Supabase dashboard, and test a restore once.
+2. **Auth** — set the Site URL and redirect URLs to the production domain, enable email confirmation, and keep Supabase's sign-in rate limits on.
+3. **Environment** — set the variables above in your host. Secrets stay server-only.
+4. **Push** — generate VAPID keys, set `CRON_SECRET` and `SUPABASE_SECRET_KEY`, then call `GET /api/cron/push-notifications` with `Authorization: Bearer $CRON_SECRET` every 5–15 minutes. Use your host's scheduler, or set the `APP_URL` repository variable and `CRON_SECRET` secret to enable `.github/workflows/push-notifications.yml`.
+5. **Errors** — server and browser errors are logged as one JSON line each (query strings removed). Set `ERROR_WEBHOOK_URL` to forward them to your log or error service.
+6. **AI assistants (MCP)** — connected assistants are read-only until you choose **Settings → AI assistants → Allow changes**. MCP clients authenticate with a Supabase session token, so anyone holding that token has your full access through the Supabase API as well; sign out everywhere if one leaks. Per-client OAuth scopes need Supabase's OAuth server and are not set up yet.
+
+## Security notes
+
+- Every table uses row-level security; browser code only ever holds the publishable key.
+- Security headers (CSP, HSTS, frame and referrer policy) are set in `next.config.ts`. Pages are statically rendered, so `script-src` allows inline scripts for the Next.js bootstrap; every other directive is strict.
+- MCP and domain-action rate limits are counted in Postgres (`consume_rate_limit`), so they hold across server instances.
+- Account deletion (`delete_my_account`) removes the auth user, which cascades to every user-owned row. Export first from Settings if needed.
