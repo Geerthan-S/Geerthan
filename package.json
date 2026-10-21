@@ -11,7 +11,9 @@
     "test": "vitest run",
     "validate": "npm run format:check && npm run test && npm run typecheck && npm run lint && npm run build",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "test:e2e": "playwright test",
+    "test:db": "scripts/test-database.sh"
   },
   "dependencies": {
     "@modelcontextprotocol/server": "^2.0.0",
@@ -28,6 +30,7 @@
   },
   "devDependencies": {
     "@modelcontextprotocol/client": "^2.0.0",
+    "@playwright/test": "^1.56.1",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",

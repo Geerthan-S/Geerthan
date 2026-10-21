@@ -99,7 +99,9 @@ describe("VAPID adapter", () => {
 
   it("only sends URL-safe topics", async () => {
     const sender = {
-      sendNotification: vi.fn(async (..._args: unknown[]) => ({ statusCode: 201, body: "", headers: {} })),
+      sendNotification: vi.fn<(...args: unknown[]) => Promise<{ statusCode: number }>>(async () => ({
+        statusCode: 201,
+      })),
     };
     const adapter = new VapidWebPushAdapter(vapid, sender as never);
     await adapter.send(subscription, { title: "t", body: "b", url: "/", tag: "habit_daily" });

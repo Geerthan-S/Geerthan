@@ -53,6 +53,7 @@ export function TaskRow({ task, compact = false }: { task: Task; compact?: boole
       </div>
       {!compact ? (
         <Button
+          className="task-edit-button"
           variant="ghost"
           size="icon"
           onClick={() => setEditing(true)}

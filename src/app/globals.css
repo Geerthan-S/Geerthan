@@ -4943,3 +4943,15 @@ a.sidebar-profile {
   flex-wrap: wrap;
   gap: 6px;
 }
+/* Phones hide a row's Focus button for space, but editing must stay reachable. */
+.task-row > .button.task-edit-button {
+  display: inline-flex;
+}
+/* Swatches show the solid colour; the shared accent classes only tint backgrounds. */
+.accent-picker .accent-swatch {
+  background: var(--accent) !important;
+}
+/* Settings now stacks its forms above the connector list. */
+.settings-main-grid {
+  grid-template-columns: minmax(0, 1fr);
+}
