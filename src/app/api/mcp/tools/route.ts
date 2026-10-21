@@ -1,5 +1,5 @@
 import { authenticateReadRequest } from "@/data/supabase/request-auth";
-import { consumeReadQuota } from "@/mcp/read-rate-limit";
+import { consumeQuota } from "@/mcp/rate-limit";
 import { readToolManifest } from "@/mcp/tools";
 
 export const runtime = "nodejs";
@@ -12,7 +12,7 @@ export async function GET(request: Request) {
   const auth = await authenticateReadRequest(request);
   if (!auth) return Response.json({ error: "Authentication required." }, { status: 401 });
 
-  const quota = consumeReadQuota(auth.user.id);
+  const quota = await consumeQuota(auth.client, auth.user.id, "mcp_read");
   if (!quota.allowed) return Response.json({ error: "Read rate limit exceeded." }, { status: 429 });
 
   return Response.json(

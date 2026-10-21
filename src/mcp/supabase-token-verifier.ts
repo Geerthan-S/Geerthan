@@ -7,6 +7,7 @@ import {
   type OAuthTokenVerifier,
 } from "@modelcontextprotocol/server";
 import { createBearerSupabaseClient } from "@/data/supabase/request-auth";
+import { mcpWritesAllowed } from "@/mcp/write-access";
 
 function tokenExpiry(token: string) {
   try {
@@ -28,10 +29,13 @@ export const supabaseTokenVerifier: OAuthTokenVerifier = {
     if (error || !data.user || !expiresAt) {
       throw new OAuthError(OAuthErrorCode.InvalidToken, "The access token is invalid or expired.");
     }
+    // A Supabase session token carries no scopes of its own, so write access is
+    // granted only when the user has switched it on in Settings.
+    const canWrite = await mcpWritesAllowed(client, data.user.id);
     return {
       token,
       clientId: data.user.id,
-      scopes: ["personal-os:read", "personal-os:write"],
+      scopes: canWrite ? ["personal-os:read", "personal-os:write"] : ["personal-os:read"],
       expiresAt,
       extra: { email: data.user.email ?? "" },
     };

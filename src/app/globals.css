@@ -4774,3 +4774,41 @@ select.glass-input option {
     display: none;
   }
 }
+
+/* Route-level loading and error states */
+.route-error {
+  max-width: 520px;
+}
+.route-error small {
+  display: block;
+  margin-top: 8px;
+  color: var(--text-faint);
+  font-size: 8px;
+}
+.route-skeleton {
+  background: linear-gradient(90deg, var(--glass) 0%, var(--glass-strong) 50%, var(--glass) 100%);
+  background-size: 200% 100%;
+  border-radius: var(--radius);
+  animation: route-skeleton-shimmer 1.4s ease-in-out infinite;
+}
+.route-skeleton-title {
+  width: min(360px, 70%);
+  height: 48px;
+  border-radius: 14px;
+}
+.route-skeleton-panel {
+  height: 220px;
+}
+@keyframes route-skeleton-shimmer {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: -100% 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .route-skeleton {
+    animation: none;
+  }
+}

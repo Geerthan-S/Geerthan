@@ -3,7 +3,8 @@ import { authenticateReadRequest } from "@/data/supabase/request-auth";
 import { SupabaseDomainActionRepository } from "@/data/supabase/supabase-domain-action-repository";
 import { PersonalOsWriteService } from "@/mcp/personal-os-write-service";
 import { isWriteToolName } from "@/mcp/tools";
-import { consumeWriteQuota } from "@/mcp/write-rate-limit";
+import { consumeQuota, retryAfterSeconds } from "@/mcp/rate-limit";
+import { mcpWritesAllowed } from "@/mcp/write-access";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -43,10 +44,16 @@ export async function POST(request: Request, context: { params: Promise<{ tool: 
   const { tool } = await context.params;
   if (!isWriteToolName(tool)) return json({ error: "Unknown domain action." }, 404);
 
-  const quota = consumeWriteQuota(auth.user.id);
+  // Bearer tokens come from external AI clients; they may only write once the
+  // user has allowed it. Cookie requests come from the user's own browser session.
+  if (auth.mode === "bearer" && !(await mcpWritesAllowed(auth.client, auth.user.id))) {
+    return json({ error: "write_access_disabled" }, 403);
+  }
+
+  const quota = await consumeQuota(auth.client, auth.user.id, "mcp_write");
   if (!quota.allowed)
     return json({ error: "Write rate limit exceeded." }, 429, {
-      "Retry-After": String(Math.ceil((quota.resetAt - Date.now()) / 1000)),
+      "Retry-After": retryAfterSeconds(quota),
     });
 
   try {

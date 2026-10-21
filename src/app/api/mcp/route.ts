@@ -5,7 +5,7 @@ import { SupabaseDomainActionRepository } from "@/data/supabase/supabase-domain-
 import { SupabaseProductPlanningContextRepository } from "@/data/supabase/supabase-product-planning-context-repository";
 import { PersonalOsReadService } from "@/mcp/personal-os-read-service";
 import { PersonalOsWriteService } from "@/mcp/personal-os-write-service";
-import { consumeReadQuota } from "@/mcp/read-rate-limit";
+import { consumeQuota, consumeMemoryQuota, retryAfterSeconds } from "@/mcp/rate-limit";
 import { createPersonalOsMcpServer } from "@/mcp/server";
 import { supabaseTokenVerifier } from "@/mcp/supabase-token-verifier";
 
@@ -33,6 +33,7 @@ const handler = createMcpHandler(
         new SupabaseProductPlanningContextRepository(client, authInfo.clientId),
       ),
       authInfo.scopes.includes("personal-os:write") ? new PersonalOsWriteService(writeRepository) : undefined,
+      { consumeWriteQuota: () => consumeQuota(client, authInfo.clientId, "mcp_write") },
     );
   },
   {
@@ -59,12 +60,15 @@ async function handle(request: Request) {
   const auth = await authenticate(request);
   if (auth instanceof Response) return securityHeaders(auth);
 
-  const quota = consumeReadQuota(auth.clientId);
+  const client = createBearerSupabaseClient(auth.token);
+  const quota = client
+    ? await consumeQuota(client, auth.clientId, "mcp_read")
+    : consumeMemoryQuota(auth.clientId, "mcp_read");
   if (!quota.allowed) {
     return securityHeaders(
       Response.json(
         { error: "Read rate limit exceeded." },
-        { status: 429, headers: { "Retry-After": String(Math.ceil((quota.resetAt - Date.now()) / 1000)) } },
+        { status: 429, headers: { "Retry-After": retryAfterSeconds(quota) } },
       ),
     );
   }
