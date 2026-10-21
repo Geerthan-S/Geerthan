@@ -23,7 +23,8 @@ export function TasksView() {
   const [projectId, setProjectId] = useState("");
 
   const tasks = useMemo(() => {
-    const base = filter === "open" ? getActiveTasks(state) : state.tasks.filter((task) => task.status === filter);
+    const base =
+      filter === "open" ? getActiveTasks(state) : state.tasks.filter((task) => task.status === filter);
     return base.filter((task) => task.title.toLowerCase().includes(query.toLowerCase()));
   }, [filter, query, state]);
 
@@ -41,17 +42,62 @@ export function TasksView() {
         eyebrow="Tasks"
         title="Every next action, visible."
         description="A focused list across active work, ordered by consequence rather than noise."
-        actions={<Button onClick={() => setCreating(true)}><Plus size={15} /> Add task</Button>}
+        actions={
+          <Button onClick={() => setCreating(true)}>
+            <Plus size={15} /> Add task
+          </Button>
+        }
       />
 
       {creating ? (
         <GlassPanel className="create-task-card">
           <form onSubmit={createTask}>
-            <div className="form-heading"><div><span className="eyebrow">New task</span><h2>Define the next action.</h2></div><Button type="button" variant="ghost" size="icon" onClick={() => setCreating(false)}><X size={18} /></Button></div>
-            <input className="glass-input task-title-field" value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Use a clear action verb…" autoFocus />
+            <div className="form-heading">
+              <div>
+                <span className="eyebrow">New task</span>
+                <h2>Define the next action.</h2>
+              </div>
+              <Button type="button" variant="ghost" size="icon" onClick={() => setCreating(false)}>
+                <X size={18} />
+              </Button>
+            </div>
+            <input
+              className="glass-input task-title-field"
+              value={title}
+              onChange={(event) => setTitle(event.target.value)}
+              placeholder="Use a clear action verb…"
+              autoFocus
+            />
             <div className="inline-fields">
-              <label>Project<select className="glass-input" value={projectId} onChange={(event) => setProjectId(event.target.value)}><option value="">No project</option>{state.projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}</select></label>
-              <label>Priority<select className="glass-input" value={priority} onChange={(event) => setPriority(event.target.value as Priority)}>{priorityOptions.map((option) => <option value={option} key={option}>{option}</option>)}</select></label>
+              <label>
+                Project
+                <select
+                  className="glass-input"
+                  value={projectId}
+                  onChange={(event) => setProjectId(event.target.value)}
+                >
+                  <option value="">No project</option>
+                  {state.projects.map((project) => (
+                    <option key={project.id} value={project.id}>
+                      {project.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                Priority
+                <select
+                  className="glass-input"
+                  value={priority}
+                  onChange={(event) => setPriority(event.target.value as Priority)}
+                >
+                  {priorityOptions.map((option) => (
+                    <option value={option} key={option}>
+                      {option}
+                    </option>
+                  ))}
+                </select>
+              </label>
               <Button type="submit">Create task</Button>
             </div>
           </form>
@@ -62,15 +108,43 @@ export function TasksView() {
         <div className="task-toolbar">
           <div className="filter-tabs">
             {(["open", "in_progress", "blocked", "completed"] as FilterValue[]).map((value) => (
-              <button key={value} className={cn(filter === value && "is-active")} onClick={() => setFilter(value)}>{value.replace("_", " ")}</button>
+              <button
+                key={value}
+                className={cn(filter === value && "is-active")}
+                onClick={() => setFilter(value)}
+              >
+                {value.replace("_", " ")}
+              </button>
             ))}
           </div>
-          <div className="task-search"><Search size={15} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search tasks" /></div>
-          <Button variant="ghost" size="icon" aria-label="More filters"><ListFilter size={17} /></Button>
+          <div className="task-search">
+            <Search size={15} />
+            <input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Search tasks"
+            />
+          </div>
+          <Button variant="ghost" size="icon" aria-label="More filters">
+            <ListFilter size={17} />
+          </Button>
         </div>
-        <div className="task-table-heading"><span>Task</span><span><Filter size={13} /> {tasks.length} shown</span></div>
+        <div className="task-table-heading">
+          <span>Task</span>
+          <span>
+            <Filter size={13} /> {tasks.length} shown
+          </span>
+        </div>
         <div className="task-list task-list-roomy">
-          {tasks.length ? tasks.map((task) => <TaskRow task={task} key={task.id} />) : <div className="empty-state"><CheckCircle2Icon /><h3>Nothing here.</h3><p>This view is clear.</p></div>}
+          {tasks.length ? (
+            tasks.map((task) => <TaskRow task={task} key={task.id} />)
+          ) : (
+            <div className="empty-state">
+              <CheckCircle2Icon />
+              <h3>Nothing here.</h3>
+              <p>This view is clear.</p>
+            </div>
+          )}
         </div>
       </GlassPanel>
     </div>

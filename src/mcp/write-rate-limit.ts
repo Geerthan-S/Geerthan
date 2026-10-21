@@ -12,5 +12,9 @@ export function consumeWriteQuota(userId: string) {
     return { allowed: true, remaining: MAX_WRITES - 1, resetAt: now + WINDOW_MS };
   }
   current.count += 1;
-  return { allowed: current.count <= MAX_WRITES, remaining: Math.max(0, MAX_WRITES - current.count), resetAt: current.resetAt };
+  return {
+    allowed: current.count <= MAX_WRITES,
+    remaining: Math.max(0, MAX_WRITES - current.count),
+    resetAt: current.resetAt,
+  };
 }

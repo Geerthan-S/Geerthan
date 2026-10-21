@@ -12,7 +12,13 @@ export interface WorkspaceRepository {
   commitChangeSet(changeSetId: string): Promise<WorkspaceState>;
   discardChangeSet(changeSetId: string): Promise<WorkspaceState>;
   scheduleTask(taskId: string, startsAt: string, endsAt: string): Promise<WorkspaceState>;
-  createCalendarBlock(input: { title: string; kind: CalendarBlockKind; startsAt: string; endsAt: string; notes?: string }): Promise<WorkspaceState>;
+  createCalendarBlock(input: {
+    title: string;
+    kind: CalendarBlockKind;
+    startsAt: string;
+    endsAt: string;
+    notes?: string;
+  }): Promise<WorkspaceState>;
   checkInHabit(habitId: string, date: string, value: number, note?: string): Promise<WorkspaceState>;
   generateDailyPlan(date: string): Promise<WorkspaceState>;
   rescheduleUnfinished(date: string): Promise<WorkspaceState>;

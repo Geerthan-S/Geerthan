@@ -239,16 +239,22 @@ export function AppShell({ children }: { children: ReactNode }) {
             >
               <Menu size={20} />
             </Button>
-            <div className="mobile-brand"><Brand /></div>
+            <div className="mobile-brand">
+              <Brand />
+            </div>
           </div>
           <button className="command-trigger" onClick={() => setCaptureOpen(true)}>
             <Search size={17} />
             <span>Capture anything…</span>
-            <kbd><Command size={12} /> K</kbd>
+            <kbd>
+              <Command size={12} /> K
+            </kbd>
           </button>
           <div className="topbar-date">
             <span>{new Intl.DateTimeFormat("en", { weekday: "long" }).format(new Date())}</span>
-            <strong>{new Intl.DateTimeFormat("en", { month: "short", day: "numeric" }).format(new Date())}</strong>
+            <strong>
+              {new Intl.DateTimeFormat("en", { month: "short", day: "numeric" }).format(new Date())}
+            </strong>
           </div>
         </header>
         <main className="workspace-content">{children}</main>

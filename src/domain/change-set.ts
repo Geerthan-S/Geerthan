@@ -15,9 +15,7 @@ export function applyChangeSet(state: WorkspaceState, changeSet: ChangeSet): Wor
     }
 
     if (!operation.entityId) continue;
-    tasks = tasks.map((task) =>
-      task.id === operation.entityId ? { ...task, ...operation.after } : task,
-    );
+    tasks = tasks.map((task) => (task.id === operation.entityId ? { ...task, ...operation.after } : task));
   }
 
   return { ...state, tasks };

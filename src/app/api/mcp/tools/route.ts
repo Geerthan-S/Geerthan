@@ -7,7 +7,8 @@ export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
   const origin = request.headers.get("origin");
-  if (origin && origin !== new URL(request.url).origin) return Response.json({ error: "Forbidden." }, { status: 403 });
+  if (origin && origin !== new URL(request.url).origin)
+    return Response.json({ error: "Forbidden." }, { status: 403 });
   const auth = await authenticateReadRequest(request);
   if (!auth) return Response.json({ error: "Authentication required." }, { status: 401 });
 

@@ -3,9 +3,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { CalendarBlockKind, Task, WorkspaceState } from "@/domain/models";
 import type { WorkspaceRepository } from "@/data/repositories/workspace-repository";
-import {
-  readWorkspaceState,
-} from "@/data/supabase/read-workspace-state";
+import { readWorkspaceState } from "@/data/supabase/read-workspace-state";
 
 export class SupabaseWorkspaceRepository implements WorkspaceRepository {
   readonly kind = "supabase" as const;
@@ -76,12 +74,29 @@ export class SupabaseWorkspaceRepository implements WorkspaceRepository {
     return this.runRpc("schedule_task", { target_task: taskId, task_start: startsAt, task_end: endsAt });
   }
 
-  createCalendarBlock(input: { title: string; kind: CalendarBlockKind; startsAt: string; endsAt: string; notes?: string }) {
-    return this.runRpc("create_calendar_block_with_activity", { block_title: input.title, block_kind: input.kind, block_start: input.startsAt, block_end: input.endsAt, block_notes: input.notes ?? "" });
+  createCalendarBlock(input: {
+    title: string;
+    kind: CalendarBlockKind;
+    startsAt: string;
+    endsAt: string;
+    notes?: string;
+  }) {
+    return this.runRpc("create_calendar_block_with_activity", {
+      block_title: input.title,
+      block_kind: input.kind,
+      block_start: input.startsAt,
+      block_end: input.endsAt,
+      block_notes: input.notes ?? "",
+    });
   }
 
   checkInHabit(habitId: string, date: string, value: number, note = "") {
-    return this.runRpc("upsert_habit_checkin", { target_habit: habitId, target_date: date, checkin_value: value, checkin_note: note });
+    return this.runRpc("upsert_habit_checkin", {
+      target_habit: habitId,
+      target_date: date,
+      checkin_value: value,
+      checkin_note: note,
+    });
   }
 
   generateDailyPlan(date: string) {

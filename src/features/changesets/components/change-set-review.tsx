@@ -14,7 +14,9 @@ export function ChangeSetReview({ changeSet }: { changeSet: ChangeSet }) {
     <GlassPanel className="change-set-card">
       <div className="section-heading">
         <div>
-          <span className="eyebrow"><FileClock size={14} /> Draft plan</span>
+          <span className="eyebrow">
+            <FileClock size={14} /> Draft plan
+          </span>
           <h2>{changeSet.title}</h2>
         </div>
         <StatusPill tone="violet">Review required</StatusPill>
@@ -26,7 +28,9 @@ export function ChangeSetReview({ changeSet }: { changeSet: ChangeSet }) {
             <span className="change-number">{changeSet.operations.indexOf(operation) + 1}</span>
             <div>
               <strong>{operation.summary}</strong>
-              <small>{operation.action} · {operation.entity.replace("_", " ")}</small>
+              <small>
+                {operation.action} · {operation.entity.replace("_", " ")}
+              </small>
             </div>
           </div>
         ))}

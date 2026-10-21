@@ -6,7 +6,10 @@ import type { PersonalOsWriteService } from "@/mcp/personal-os-write-service";
 import { consumeWriteQuota } from "@/mcp/write-rate-limit";
 import { personalOsTools, personalOsWriteTools, readToolNames, writeToolNames } from "@/mcp/tools";
 
-export function createPersonalOsMcpServer(readService: PersonalOsReadService, writeService?: PersonalOsWriteService) {
+export function createPersonalOsMcpServer(
+  readService: PersonalOsReadService,
+  writeService?: PersonalOsWriteService,
+) {
   const server = new McpServer({ name: "personal-os-read", version: "1.0.0" });
 
   for (const name of readToolNames) {

@@ -37,17 +37,55 @@ export async function readWorkspaceState(
       client.from("profiles").select("*").eq("id", userId).single(),
       client.from("projects").select("*").eq("user_id", userId).order("updated_at", { ascending: false }),
       client.from("tasks").select("*").eq("user_id", userId).order("created_at", { ascending: false }),
-      client.from("work_sessions").select("*").eq("user_id", userId).order("started_at", { ascending: false }).limit(sessionLimit),
+      client
+        .from("work_sessions")
+        .select("*")
+        .eq("user_id", userId)
+        .order("started_at", { ascending: false })
+        .limit(sessionLimit),
       client.from("inbox_items").select("*").eq("user_id", userId).order("created_at", { ascending: false }),
-      client.from("activity_log").select("*").eq("user_id", userId).order("occurred_at", { ascending: false }).limit(activityLimit),
-      client.from("change_sets").select("*, change_operations(*)").eq("user_id", userId).order("created_at", { ascending: false }),
-      client.from("calendar_blocks").select("*").eq("user_id", userId).order("starts_at", { ascending: true }),
-      client.from("habits").select("*").eq("user_id", userId).eq("active", true).order("sort_order", { ascending: true }),
-      client.from("habit_logs").select("*").eq("user_id", userId).gte("log_date", habitStart).order("log_date", { ascending: false }),
+      client
+        .from("activity_log")
+        .select("*")
+        .eq("user_id", userId)
+        .order("occurred_at", { ascending: false })
+        .limit(activityLimit),
+      client
+        .from("change_sets")
+        .select("*, change_operations(*)")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false }),
+      client
+        .from("calendar_blocks")
+        .select("*")
+        .eq("user_id", userId)
+        .order("starts_at", { ascending: true }),
+      client
+        .from("habits")
+        .select("*")
+        .eq("user_id", userId)
+        .eq("active", true)
+        .order("sort_order", { ascending: true }),
+      client
+        .from("habit_logs")
+        .select("*")
+        .eq("user_id", userId)
+        .gte("log_date", habitStart)
+        .order("log_date", { ascending: false }),
     ]);
 
-  const failure = [profile, projects, tasks, sessions, inbox, activity, changeSets, calendarBlocks, habits, habitLogs]
-    .find((result) => result.error)?.error;
+  const failure = [
+    profile,
+    projects,
+    tasks,
+    sessions,
+    inbox,
+    activity,
+    changeSets,
+    calendarBlocks,
+    habits,
+    habitLogs,
+  ].find((result) => result.error)?.error;
   if (failure) throw new Error("Workspace read failed.", { cause: failure });
 
   return {

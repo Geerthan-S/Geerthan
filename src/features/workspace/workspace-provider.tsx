@@ -1,14 +1,6 @@
 "use client";
 
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-  type ReactNode,
-} from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import type { CalendarBlockKind, Priority, Task, WorkspaceState } from "@/domain/models";
 import { createEmptyWorkspace, createSeedWorkspace } from "@/data/seed";
 import { createWorkspaceRepository } from "@/data/repositories/create-workspace-repository";
@@ -23,7 +15,13 @@ interface WorkspaceActions {
   commitChangeSet(changeSetId: string): Promise<void>;
   discardChangeSet(changeSetId: string): Promise<void>;
   scheduleTask(taskId: string, startsAt: string, endsAt: string): Promise<void>;
-  createCalendarBlock(input: { title: string; kind: CalendarBlockKind; startsAt: string; endsAt: string; notes?: string }): Promise<void>;
+  createCalendarBlock(input: {
+    title: string;
+    kind: CalendarBlockKind;
+    startsAt: string;
+    endsAt: string;
+    notes?: string;
+  }): Promise<void>;
   checkInHabit(habitId: string, date: string, value: number, note?: string): Promise<void>;
   generateDailyPlan(date: string): Promise<void>;
   rescheduleUnfinished(date: string): Promise<void>;
@@ -64,11 +62,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       setNotice(null);
       setState(await operation());
     } catch (operationError) {
-      setNotice(
-        operationError instanceof Error
-          ? operationError.message
-          : "The workspace update failed.",
-      );
+      setNotice(operationError instanceof Error ? operationError.message : "The workspace update failed.");
     }
   }, []);
 
@@ -77,18 +71,14 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       toggleTask: (taskId) => run(() => repository.toggleTask(taskId)),
       createTask: (input) => run(() => repository.createTask(input)),
       addCapture: (title, note) => run(() => repository.addCapture(title, note)),
-      promoteCapture: (captureId) =>
-        run(() => repository.promoteCapture(captureId)),
+      promoteCapture: (captureId) => run(() => repository.promoteCapture(captureId)),
       startSession: (taskId) => run(() => repository.startSession(taskId)),
       stopSession: (outcome) => run(() => repository.stopSession(outcome)),
-      commitChangeSet: (changeSetId) =>
-        run(() => repository.commitChangeSet(changeSetId)),
-      discardChangeSet: (changeSetId) =>
-        run(() => repository.discardChangeSet(changeSetId)),
+      commitChangeSet: (changeSetId) => run(() => repository.commitChangeSet(changeSetId)),
+      discardChangeSet: (changeSetId) => run(() => repository.discardChangeSet(changeSetId)),
       scheduleTask: (taskId, startsAt, endsAt) =>
         run(() => repository.scheduleTask(taskId, startsAt, endsAt)),
-      createCalendarBlock: (input) =>
-        run(() => repository.createCalendarBlock(input)),
+      createCalendarBlock: (input) => run(() => repository.createCalendarBlock(input)),
       checkInHabit: (habitId, date, value, note) =>
         run(() => repository.checkInHabit(habitId, date, value, note)),
       generateDailyPlan: (date) => run(() => repository.generateDailyPlan(date)),
@@ -118,7 +108,9 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
           <h1>Workspace unavailable</h1>
           <p>{fatalError}</p>
           <div className="workspace-gate-actions">
-            <a className="button button-secondary button-md" href="/login">Sign in</a>
+            <a className="button button-secondary button-md" href="/login">
+              Sign in
+            </a>
             <button className="button button-primary button-md" onClick={() => window.location.reload()}>
               Try again
             </button>
@@ -131,7 +123,12 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   return (
     <WorkspaceContext.Provider value={{ state, ready, mode, actions }}>
       {children}
-      {notice ? <button className="workspace-notice glass-panel" onClick={() => setNotice(null)}>{notice}<span>Dismiss</span></button> : null}
+      {notice ? (
+        <button className="workspace-notice glass-panel" onClick={() => setNotice(null)}>
+          {notice}
+          <span>Dismiss</span>
+        </button>
+      ) : null}
     </WorkspaceContext.Provider>
   );
 }

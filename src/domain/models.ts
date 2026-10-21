@@ -1,10 +1,5 @@
 export type Priority = "critical" | "high" | "medium" | "low";
-export type TaskStatus =
-  | "inbox"
-  | "planned"
-  | "in_progress"
-  | "blocked"
-  | "completed";
+export type TaskStatus = "inbox" | "planned" | "in_progress" | "blocked" | "completed";
 export type ProjectStatus = "active" | "paused" | "completed";
 export type ProjectHealth = "on_track" | "at_risk" | "blocked";
 

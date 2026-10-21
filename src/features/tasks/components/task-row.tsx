@@ -36,14 +36,26 @@ export function TaskRow({ task, compact = false }: { task: Task; compact?: boole
           {!compact ? <StatusPill tone={priorityTone[task.priority]}>{task.priority}</StatusPill> : null}
         </div>
         <div className="task-meta">
-          {project ? <span className={`project-dot accent-${project.accent}`}>{project.code}</span> : <span>Personal</span>}
-          <span><Clock3 size={13} /> {task.scheduledStart ? formatTime(task.scheduledStart) : formatMinutes(task.estimateMinutes)}</span>
+          {project ? (
+            <span className={`project-dot accent-${project.accent}`}>{project.code}</span>
+          ) : (
+            <span>Personal</span>
+          )}
+          <span>
+            <Clock3 size={13} />{" "}
+            {task.scheduledStart ? formatTime(task.scheduledStart) : formatMinutes(task.estimateMinutes)}
+          </span>
           {task.status === "blocked" ? <StatusPill tone="red">Blocked</StatusPill> : null}
         </div>
       </div>
       {!compact ? (
         completed ? (
-          <Button variant="ghost" size="icon" onClick={() => actions.toggleTask(task.id)} aria-label="Reopen task">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => actions.toggleTask(task.id)}
+            aria-label="Reopen task"
+          >
             <RotateCcw size={16} />
           </Button>
         ) : (

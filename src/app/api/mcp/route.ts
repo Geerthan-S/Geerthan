@@ -28,7 +28,10 @@ const handler = createMcpHandler(
     });
     const writeRepository = new SupabaseDomainActionRepository(client, authInfo.clientId);
     return createPersonalOsMcpServer(
-      new PersonalOsReadService(repository,new SupabaseProductPlanningContextRepository(client,authInfo.clientId)),
+      new PersonalOsReadService(
+        repository,
+        new SupabaseProductPlanningContextRepository(client, authInfo.clientId),
+      ),
       authInfo.scopes.includes("personal-os:write") ? new PersonalOsWriteService(writeRepository) : undefined,
     );
   },

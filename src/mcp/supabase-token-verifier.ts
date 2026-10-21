@@ -1,11 +1,18 @@
 import "server-only";
 
-import { OAuthError, OAuthErrorCode, type AuthInfo, type OAuthTokenVerifier } from "@modelcontextprotocol/server";
+import {
+  OAuthError,
+  OAuthErrorCode,
+  type AuthInfo,
+  type OAuthTokenVerifier,
+} from "@modelcontextprotocol/server";
 import { createBearerSupabaseClient } from "@/data/supabase/request-auth";
 
 function tokenExpiry(token: string) {
   try {
-    const payload = JSON.parse(Buffer.from(token.split(".")[1], "base64url").toString("utf8")) as { exp?: unknown };
+    const payload = JSON.parse(Buffer.from(token.split(".")[1], "base64url").toString("utf8")) as {
+      exp?: unknown;
+    };
     return typeof payload.exp === "number" ? payload.exp : undefined;
   } catch {
     return undefined;

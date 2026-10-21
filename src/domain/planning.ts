@@ -19,16 +19,24 @@ export function dateKey(value: Date) {
 
 export function calendarItems(tasks: Task[], blocks: CalendarBlock[]): CalendarItem[] {
   return [
-    ...tasks.filter((task) => task.scheduledStart && task.scheduledEnd).map((task) => ({
-      id: `task-${task.id}`,
-      title: task.title,
-      startsAt: task.scheduledStart as string,
-      endsAt: task.scheduledEnd as string,
-      kind: "task" as const,
-      taskId: task.id,
-      priority: task.priority,
+    ...tasks
+      .filter((task) => task.scheduledStart && task.scheduledEnd)
+      .map((task) => ({
+        id: `task-${task.id}`,
+        title: task.title,
+        startsAt: task.scheduledStart as string,
+        endsAt: task.scheduledEnd as string,
+        kind: "task" as const,
+        taskId: task.id,
+        priority: task.priority,
+      })),
+    ...blocks.map((block) => ({
+      id: `block-${block.id}`,
+      title: block.title,
+      startsAt: block.startsAt,
+      endsAt: block.endsAt,
+      kind: block.kind,
     })),
-    ...blocks.map((block) => ({ id: `block-${block.id}`, title: block.title, startsAt: block.startsAt, endsAt: block.endsAt, kind: block.kind })),
   ].sort((a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime());
 }
 
@@ -41,7 +49,10 @@ export function findConflicts(items: CalendarItem[]) {
   const conflicts = new Set<string>();
   for (let index = 0; index < items.length; index += 1) {
     for (let comparison = index + 1; comparison < items.length; comparison += 1) {
-      if (new Date(items[index].startsAt) < new Date(items[comparison].endsAt) && new Date(items[index].endsAt) > new Date(items[comparison].startsAt)) {
+      if (
+        new Date(items[index].startsAt) < new Date(items[comparison].endsAt) &&
+        new Date(items[index].endsAt) > new Date(items[comparison].startsAt)
+      ) {
         conflicts.add(items[index].id);
         conflicts.add(items[comparison].id);
       }
@@ -51,9 +62,17 @@ export function findConflicts(items: CalendarItem[]) {
 }
 
 export function freeMinutesForDate(items: CalendarItem[], date: Date, startHour = 9, endHour = 19) {
-  const dayStart = new Date(date); dayStart.setHours(startHour, 0, 0, 0);
-  const dayEnd = new Date(date); dayEnd.setHours(endHour, 0, 0, 0);
-  const intervals = itemsForDate(items, date).map((item) => ({ start: Math.max(dayStart.getTime(), new Date(item.startsAt).getTime()), end: Math.min(dayEnd.getTime(), new Date(item.endsAt).getTime()) })).filter((item) => item.end > item.start).sort((a, b) => a.start - b.start);
+  const dayStart = new Date(date);
+  dayStart.setHours(startHour, 0, 0, 0);
+  const dayEnd = new Date(date);
+  dayEnd.setHours(endHour, 0, 0, 0);
+  const intervals = itemsForDate(items, date)
+    .map((item) => ({
+      start: Math.max(dayStart.getTime(), new Date(item.startsAt).getTime()),
+      end: Math.min(dayEnd.getTime(), new Date(item.endsAt).getTime()),
+    }))
+    .filter((item) => item.end > item.start)
+    .sort((a, b) => a.start - b.start);
   let occupied = 0;
   let cursor = dayStart.getTime();
   for (const interval of intervals) {

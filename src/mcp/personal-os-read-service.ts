@@ -16,26 +16,69 @@ import {
 import { readToolSchemas, type ReadToolName } from "@/mcp/tools";
 
 export class PersonalOsReadService {
-  constructor(private readonly repository: WorkspaceReadRepository,private readonly productRepository?:ProductPlanningContextRepository) {}
+  constructor(
+    private readonly repository: WorkspaceReadRepository,
+    private readonly productRepository?: ProductPlanningContextRepository,
+  ) {}
 
   async execute(toolName: ReadToolName, rawInput: unknown) {
     readToolSchemas[toolName].parse(rawInput);
-    const state = await this.repository.load({ activityLimit: 500, sessionLimit: 250, habitHistoryDays: 366 });
+    const state = await this.repository.load({
+      activityLimit: 500,
+      sessionLimit: 250,
+      habitHistoryDays: 366,
+    });
     const today = dateInTimeZone(new Date(), state.profile.timezone);
 
     switch (toolName) {
       case "get_planning_context": {
         const input = readToolSchemas.get_planning_context.parse(rawInput);
-        const core=buildPlanningContext(state, input.date ?? today);
-        if(!this.productRepository)return core;
-        const{business,learning,system}=await this.productRepository.loadProducts();
-        return{...core,
-          work:{active_clients:business.summary.activeClients,open_deliverables:business.summary.openDeliverables,outstanding_amount:business.summary.outstanding,net_cash_flow:business.summary.netCashFlow,weighted_pipeline:business.summary.weightedPipeline,due_deliverables:business.deliverables.filter((item)=>item.status!=="completed").slice(0,10),unpaid_invoices:business.invoices.filter((item)=>!['paid','cancelled'].includes(item.status)).slice(0,10)},
-          growth:{average_mastery:learning.growthSummary.averageMastery,revisions_due:learning.growthSummary.revisionsDue,learning_minutes:learning.growthSummary.learningMinutes,dsa:learning.dsaSummary,weak_topics:learning.topics.filter((item)=>item.weak).slice(0,10)},
-          academics:{low_attendance:learning.academicSummary.lowAttendance,assignments_due:learning.assignments.filter((item)=>!['submitted','graded'].includes(item.status)).slice(0,10),upcoming_exams:learning.exams.slice(0,10)},
-          goals:{average_progress:system.summary.averageGoalProgress,active:system.goals.filter((item)=>item.status==="active").slice(0,20)},
-          notifications:{unread:system.summary.unreadNotifications,items:system.notifications.filter((item)=>!item.readAt).slice(0,10)},
-          integrations:system.integrations.map((item)=>({connector:item.connector,status:item.status,last_synced_at:item.lastSyncedAt,message:item.statusMessage})),
+        const core = buildPlanningContext(state, input.date ?? today);
+        if (!this.productRepository) return core;
+        const { business, learning, system } = await this.productRepository.loadProducts();
+        return {
+          ...core,
+          work: {
+            active_clients: business.summary.activeClients,
+            open_deliverables: business.summary.openDeliverables,
+            outstanding_amount: business.summary.outstanding,
+            net_cash_flow: business.summary.netCashFlow,
+            weighted_pipeline: business.summary.weightedPipeline,
+            due_deliverables: business.deliverables
+              .filter((item) => item.status !== "completed")
+              .slice(0, 10),
+            unpaid_invoices: business.invoices
+              .filter((item) => !["paid", "cancelled"].includes(item.status))
+              .slice(0, 10),
+          },
+          growth: {
+            average_mastery: learning.growthSummary.averageMastery,
+            revisions_due: learning.growthSummary.revisionsDue,
+            learning_minutes: learning.growthSummary.learningMinutes,
+            dsa: learning.dsaSummary,
+            weak_topics: learning.topics.filter((item) => item.weak).slice(0, 10),
+          },
+          academics: {
+            low_attendance: learning.academicSummary.lowAttendance,
+            assignments_due: learning.assignments
+              .filter((item) => !["submitted", "graded"].includes(item.status))
+              .slice(0, 10),
+            upcoming_exams: learning.exams.slice(0, 10),
+          },
+          goals: {
+            average_progress: system.summary.averageGoalProgress,
+            active: system.goals.filter((item) => item.status === "active").slice(0, 20),
+          },
+          notifications: {
+            unread: system.summary.unreadNotifications,
+            items: system.notifications.filter((item) => !item.readAt).slice(0, 10),
+          },
+          integrations: system.integrations.map((item) => ({
+            connector: item.connector,
+            status: item.status,
+            last_synced_at: item.lastSyncedAt,
+            message: item.statusMessage,
+          })),
         };
       }
       case "get_today": {

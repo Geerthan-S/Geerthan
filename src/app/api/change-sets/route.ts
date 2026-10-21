@@ -44,9 +44,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ data: draft }, { status: 201 });
   } catch (error) {
     console.error("Change-set draft creation failed", error instanceof Error ? error.name : "UnknownError");
-    return NextResponse.json(
-      { error: "draft_creation_failed" },
-      { status: 409 },
-    );
+    return NextResponse.json({ error: "draft_creation_failed" }, { status: 409 });
   }
 }

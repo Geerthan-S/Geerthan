@@ -1,11 +1,5 @@
 export type ConnectorId =
-  | "google_calendar"
-  | "microsoft_teams"
-  | "vtop"
-  | "lms"
-  | "github"
-  | "gmail"
-  | "leetcode";
+  "google_calendar" | "microsoft_teams" | "vtop" | "lms" | "github" | "gmail" | "leetcode";
 
 export interface ConnectorHealth {
   connector: ConnectorId;
