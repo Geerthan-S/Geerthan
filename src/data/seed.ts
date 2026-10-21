@@ -8,6 +8,7 @@ export function createEmptyWorkspace(): WorkspaceState {
       email: "",
       timezone: "Asia/Kolkata",
       focusTargetMinutes: 300,
+      mcpWriteEnabled: false,
     },
     projects: [],
     tasks: [],
@@ -43,6 +44,7 @@ export function createSeedWorkspace(): WorkspaceState {
       email: "geerthan@example.com",
       timezone: "Asia/Kolkata",
       focusTargetMinutes: 300,
+      mcpWriteEnabled: false,
     },
     projects: [
       {

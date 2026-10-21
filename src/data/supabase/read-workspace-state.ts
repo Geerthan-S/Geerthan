@@ -15,6 +15,21 @@ import {
 
 type Row = Record<string, unknown>;
 
+// PostgREST caps every response (1000 rows by default), so unbounded lists are read page by page.
+const PAGE_SIZE = 1000;
+
+type PageResult = { data: unknown[] | null; error: unknown };
+
+async function readAllRows(page: (from: number, to: number) => PromiseLike<PageResult>): Promise<PageResult> {
+  const rows: unknown[] = [];
+  for (let offset = 0; ; offset += PAGE_SIZE) {
+    const { data, error } = await page(offset, offset + PAGE_SIZE - 1);
+    if (error) return { data: null, error };
+    rows.push(...(data ?? []));
+    if (!data || data.length < PAGE_SIZE) return { data: rows, error: null };
+  }
+}
+
 export interface WorkspaceReadOptions {
   activityLimit?: number;
   sessionLimit?: number;
@@ -35,15 +50,39 @@ export async function readWorkspaceState(
   const [profile, projects, tasks, sessions, inbox, activity, changeSets, calendarBlocks, habits, habitLogs] =
     await Promise.all([
       client.from("profiles").select("*").eq("id", userId).single(),
-      client.from("projects").select("*").eq("user_id", userId).order("updated_at", { ascending: false }),
-      client.from("tasks").select("*").eq("user_id", userId).order("created_at", { ascending: false }),
+      readAllRows((from, to) =>
+        client
+          .from("projects")
+          .select("*")
+          .eq("user_id", userId)
+          .order("updated_at", { ascending: false })
+          .order("id")
+          .range(from, to),
+      ),
+      readAllRows((from, to) =>
+        client
+          .from("tasks")
+          .select("*")
+          .eq("user_id", userId)
+          .order("created_at", { ascending: false })
+          .order("id")
+          .range(from, to),
+      ),
       client
         .from("work_sessions")
         .select("*")
         .eq("user_id", userId)
         .order("started_at", { ascending: false })
         .limit(sessionLimit),
-      client.from("inbox_items").select("*").eq("user_id", userId).order("created_at", { ascending: false }),
+      readAllRows((from, to) =>
+        client
+          .from("inbox_items")
+          .select("*")
+          .eq("user_id", userId)
+          .order("created_at", { ascending: false })
+          .order("id")
+          .range(from, to),
+      ),
       client
         .from("activity_log")
         .select("*")
@@ -55,23 +94,31 @@ export async function readWorkspaceState(
         .select("*, change_operations(*)")
         .eq("user_id", userId)
         .order("created_at", { ascending: false }),
-      client
-        .from("calendar_blocks")
-        .select("*")
-        .eq("user_id", userId)
-        .order("starts_at", { ascending: true }),
+      readAllRows((from, to) =>
+        client
+          .from("calendar_blocks")
+          .select("*")
+          .eq("user_id", userId)
+          .order("starts_at", { ascending: true })
+          .order("id")
+          .range(from, to),
+      ),
       client
         .from("habits")
         .select("*")
         .eq("user_id", userId)
         .eq("active", true)
         .order("sort_order", { ascending: true }),
-      client
-        .from("habit_logs")
-        .select("*")
-        .eq("user_id", userId)
-        .gte("log_date", habitStart)
-        .order("log_date", { ascending: false }),
+      readAllRows((from, to) =>
+        client
+          .from("habit_logs")
+          .select("*")
+          .eq("user_id", userId)
+          .gte("log_date", habitStart)
+          .order("log_date", { ascending: false })
+          .order("id")
+          .range(from, to),
+      ),
     ]);
 
   const failure = [

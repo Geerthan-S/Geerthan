@@ -76,7 +76,16 @@ export interface ActivityEvent {
     | "calendar_block_created"
     | "calendar_block_updated"
     | "changeset_reversed"
-    | "habit_checked_in";
+    | "habit_checked_in"
+    | "task_deleted"
+    | "project_created"
+    | "project_updated"
+    | "project_deleted"
+    | "habit_created"
+    | "habit_updated"
+    | "habit_archived"
+    | "habit_restored"
+    | "mcp_access_changed";
   summary: string;
   detail: string;
   occurredAt: string;
@@ -153,6 +162,7 @@ export interface WorkspaceProfile {
   email: string;
   timezone: string;
   focusTargetMinutes: number;
+  mcpWriteEnabled: boolean;
 }
 
 export interface WorkspaceState {
@@ -167,3 +177,27 @@ export interface WorkspaceState {
   habits: Habit[];
   habitLogs: HabitLog[];
 }
+
+export type TaskDetailsInput = Pick<Task, "title" | "priority" | "projectId" | "dueAt" | "estimateMinutes">;
+
+export type ProjectInput = Pick<Project, "name" | "code" | "description" | "client" | "deadline" | "accent">;
+
+export type ProjectPatch = Partial<
+  Pick<
+    Project,
+    | "name"
+    | "code"
+    | "description"
+    | "client"
+    | "status"
+    | "health"
+    | "progress"
+    | "deadline"
+    | "nextMilestone"
+    | "accent"
+  >
+>;
+
+export type HabitInput = Pick<Habit, "name" | "description" | "metric" | "targetValue" | "unit" | "accent">;
+
+export type HabitUpdateInput = Omit<HabitInput, "metric">;

@@ -33,6 +33,7 @@ export function mapProfile(row: Row, email: string): WorkspaceProfile {
     email,
     timezone: text(row.timezone, "Asia/Kolkata"),
     focusTargetMinutes: numberValue(row.focus_target_minutes, 300),
+    mcpWriteEnabled: row.mcp_write_enabled === true,
   };
 }
 
@@ -123,6 +124,15 @@ export function mapActivity(row: Row): ActivityEvent {
     "calendar_block_updated",
     "changeset_reversed",
     "habit_checked_in",
+    "task_deleted",
+    "project_created",
+    "project_updated",
+    "project_deleted",
+    "habit_created",
+    "habit_updated",
+    "habit_archived",
+    "habit_restored",
+    "mcp_access_changed",
   ];
   const eventType = text(row.event_type);
   return {

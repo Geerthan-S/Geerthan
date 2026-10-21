@@ -1,9 +1,19 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Check, Flame, Minus, Plus, Target } from "lucide-react";
-import { dateKey, habitConsistency, habitProgress, habitStreak } from "@/domain/planning";
+import { Check, Flame, Minus, Plus, Repeat2, Target } from "lucide-react";
+import {
+  dateFromKey,
+  dateKey,
+  habitConsistency,
+  habitProgress,
+  habitStreak,
+  todayKey,
+} from "@/domain/planning";
 import type { Habit } from "@/domain/models";
+import { HabitFormDialog } from "@/features/habits/components/habit-form-dialog";
+import { HabitManageView } from "@/features/habits/components/habit-manage-view";
+import { HabitMonthView } from "@/features/habits/components/habit-month-view";
 import { PageHeader } from "@/features/workspace/components/page-header";
 import { useWorkspace } from "@/features/workspace/workspace-provider";
 import { Button } from "@/shared/components/ui/button";
@@ -21,18 +31,80 @@ function stepFor(habit: Habit) {
   return 1;
 }
 
+type HabitTab = "today" | "month" | "manage";
+
+const tabs: { id: HabitTab; label: string }[] = [
+  { id: "today", label: "Today" },
+  { id: "month", label: "Month" },
+  { id: "manage", label: "Manage" },
+];
+
 export function HabitsView() {
+  const { state } = useWorkspace();
+  const today = todayKey(state.profile.timezone);
+  const [tab, setTab] = useState<HabitTab>("today");
+  const [creating, setCreating] = useState(false);
+
+  return (
+    <div className="page-stack">
+      <PageHeader
+        eyebrow="Consistency"
+        title="Daily habits"
+        description="Small promises, measured honestly. Tick today, fill in the days you missed, and see the month at a glance."
+        actions={
+          <Button onClick={() => setCreating(true)}>
+            <Plus size={15} /> New habit
+          </Button>
+        }
+      />
+
+      {state.habits.length ? (
+        <>
+          <div className="filter-tabs habit-tabs" role="tablist" aria-label="Habit views">
+            {tabs.map((item) => (
+              <button
+                key={item.id}
+                role="tab"
+                aria-selected={tab === item.id}
+                className={cn(tab === item.id && "is-active")}
+                onClick={() => setTab(item.id)}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+          {tab === "today" ? <HabitTodayView today={today} /> : null}
+          {tab === "month" ? <HabitMonthView today={today} /> : null}
+          {tab === "manage" ? <HabitManageView /> : null}
+        </>
+      ) : (
+        <GlassPanel className="empty-state habit-empty-state">
+          <Repeat2 size={22} />
+          <h3>Start with one habit.</h3>
+          <p>Pick something small enough to do on a bad day. You can add more once it sticks.</p>
+          <Button onClick={() => setCreating(true)}>
+            <Plus size={15} /> Create your first habit
+          </Button>
+        </GlassPanel>
+      )}
+
+      <HabitFormDialog open={creating} onClose={() => setCreating(false)} />
+    </div>
+  );
+}
+
+function HabitTodayView({ today }: { today: string }) {
   const { state, actions } = useWorkspace();
-  const today = dateKey(new Date());
+  const todayDate = dateFromKey(today);
   const [draftValues, setDraftValues] = useState<Record<string, number>>({});
   const week = useMemo(
     () =>
       Array.from({ length: 7 }, (_, index) => {
-        const day = new Date();
+        const day = dateFromKey(today);
         day.setDate(day.getDate() - 6 + index);
         return day;
       }),
-    [],
+    [today],
   );
   const completedToday = state.habits.filter((habit) => {
     const log = state.habitLogs.find((item) => item.habitId === habit.id && item.date === today);
@@ -40,7 +112,7 @@ export function HabitsView() {
   }).length;
   const averageConsistency = state.habits.length
     ? Math.round(
-        state.habits.reduce((sum, habit) => sum + habitConsistency(habit, state.habitLogs), 0) /
+        state.habits.reduce((sum, habit) => sum + habitConsistency(habit, state.habitLogs, 7, todayDate), 0) /
           state.habits.length,
       )
     : 0;
@@ -60,13 +132,7 @@ export function HabitsView() {
   }
 
   return (
-    <div className="page-stack">
-      <PageHeader
-        eyebrow="Phase 2 · consistency"
-        title="Daily habits"
-        description="Small promises, measured honestly. Check in once and keep the record in your Personal OS."
-      />
-
+    <>
       <div className="habit-summary-grid">
         <GlassPanel>
           <Target size={18} />
@@ -81,7 +147,7 @@ export function HabitsView() {
           <Flame size={18} />
           <div>
             <strong>
-              {Math.max(0, ...state.habits.map((habit) => habitStreak(habit, state.habitLogs)))}
+              {Math.max(0, ...state.habits.map((habit) => habitStreak(habit, state.habitLogs, todayDate)))}
             </strong>
             <span>best current streak</span>
           </div>
@@ -99,7 +165,7 @@ export function HabitsView() {
         <div className="habit-checkin-heading">
           <div>
             <span className="eyebrow">
-              Today · {new Intl.DateTimeFormat("en", { month: "short", day: "numeric" }).format(new Date())}
+              Today · {new Intl.DateTimeFormat("en", { month: "short", day: "numeric" }).format(todayDate)}
             </span>
             <h2>Daily check-in</h2>
           </div>
@@ -130,7 +196,7 @@ export function HabitsView() {
                     <small>{habit.description}</small>
                   </div>
                   <span className="habit-streak">
-                    <Flame size={12} /> {habitStreak(habit, state.habitLogs)}
+                    <Flame size={12} /> {habitStreak(habit, state.habitLogs, todayDate)}
                   </span>
                 </div>
                 <div className="habit-progress-track">
@@ -232,11 +298,11 @@ export function HabitsView() {
                   </span>
                 );
               })}
-              <strong>{habitConsistency(habit, state.habitLogs)}%</strong>
+              <strong>{habitConsistency(habit, state.habitLogs, 7, todayDate)}%</strong>
             </div>
           ))}
         </div>
       </GlassPanel>
-    </div>
+    </>
   );
 }

@@ -1,8 +1,10 @@
 "use client";
 
-import { Circle, CircleCheck, Clock3, Play, RotateCcw } from "lucide-react";
+import { Circle, CircleCheck, Clock3, Pencil, Play, RotateCcw } from "lucide-react";
+import { useState } from "react";
 import type { Task } from "@/domain/models";
 import { getProjectById } from "@/domain/queries";
+import { TaskEditDialog } from "@/features/tasks/components/task-edit-dialog";
 import { useWorkspace } from "@/features/workspace/workspace-provider";
 import { Button } from "@/shared/components/ui/button";
 import { StatusPill } from "@/shared/components/ui/status-pill";
@@ -20,6 +22,7 @@ export function TaskRow({ task, compact = false }: { task: Task; compact?: boole
   const project = getProjectById(state, task.projectId);
   const running = state.sessions.some((session) => session.status === "running");
   const completed = task.status === "completed";
+  const [editing, setEditing] = useState(false);
 
   return (
     <article className={cn("task-row", compact && "task-row-compact", completed && "is-complete")}>
@@ -49,6 +52,16 @@ export function TaskRow({ task, compact = false }: { task: Task; compact?: boole
         </div>
       </div>
       {!compact ? (
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => setEditing(true)}
+          aria-label={`Edit ${task.title}`}
+        >
+          <Pencil size={15} />
+        </Button>
+      ) : null}
+      {!compact ? (
         completed ? (
           <Button
             variant="ghost"
@@ -69,6 +82,7 @@ export function TaskRow({ task, compact = false }: { task: Task; compact?: boole
           </Button>
         )
       ) : null}
+      <TaskEditDialog task={editing ? task : null} onClose={() => setEditing(false)} />
     </article>
   );
 }

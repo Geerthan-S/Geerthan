@@ -9,6 +9,7 @@ class FakeQuery implements PromiseLike<{ data: Row[] | Row | null; error: null }
   private filters: Array<[string, unknown]> = [];
   private lowerBounds: Array<[string, string]> = [];
   private maximum: number | null = null;
+  private window: [number, number] | null = null;
   private wantsSingle = false;
 
   constructor(
@@ -36,6 +37,10 @@ class FakeQuery implements PromiseLike<{ data: Row[] | Row | null; error: null }
     this.maximum = value;
     return this;
   }
+  range(from: number, to: number) {
+    this.window = [from, to];
+    return this;
+  }
   single() {
     this.wantsSingle = true;
     return this;
@@ -50,7 +55,9 @@ class FakeQuery implements PromiseLike<{ data: Row[] | Row | null; error: null }
     for (const [column, value] of this.filters) rows = rows.filter((row) => row[column] === value);
     for (const [column, value] of this.lowerBounds)
       rows = rows.filter((row) => String(row[column] ?? "") >= value);
-    if (this.maximum !== null) rows = rows.slice(0, this.maximum);
+    if (this.window) rows = rows.slice(this.window[0], this.window[1] + 1);
+    // Mirror PostgREST's default max-rows cap.
+    rows = rows.slice(0, this.maximum ?? 1000);
     const result = { data: this.wantsSingle ? (rows[0] ?? null) : rows, error: null };
     return Promise.resolve(result).then(onfulfilled, onrejected);
   }
@@ -123,5 +130,36 @@ describe("Supabase workspace reads", () => {
       expect(seenFilters).toContainEqual({ table, column: "user_id", value: userA });
     }
     expect(seenFilters).toContainEqual({ table: "profiles", column: "id", value: userA });
+  });
+
+  it("reads every task even when a user has more rows than one response can hold", async () => {
+    const userA = "11111111-1111-4111-8111-111111111111";
+    const tasks = Array.from({ length: 2500 }, (_, index) => ({
+      id: `task-${index}`,
+      user_id: userA,
+      title: `Task ${index}`,
+      status: "completed",
+      priority: "low",
+      created_at: "2026-08-25T09:00:00.000Z",
+      completed_at: "2026-08-25T10:00:00.000Z",
+    }));
+    const data: TableData = {
+      profiles: [{ id: userA, display_name: "User A", timezone: "UTC", focus_target_minutes: 300 }],
+      projects: [],
+      tasks,
+      work_sessions: [],
+      inbox_items: [],
+      activity_log: [],
+      change_sets: [],
+      calendar_blocks: [],
+      habits: [],
+      habit_logs: [],
+    };
+    const client = { from: (table: string) => new FakeQuery(table, data, []) } as unknown as SupabaseClient;
+
+    const state = await readWorkspaceState(client, { id: userA, email: "user-a@example.test" });
+
+    expect(state.tasks).toHaveLength(2500);
+    expect(new Set(state.tasks.map((task) => task.id)).size).toBe(2500);
   });
 });

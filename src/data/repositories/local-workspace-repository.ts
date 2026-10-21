@@ -1,9 +1,23 @@
 import { applyChangeSet } from "@/domain/change-set";
-import type { ActivityEvent, CalendarBlockKind, Task, WorkspaceState } from "@/domain/models";
+import type {
+  ActivityEvent,
+  CalendarBlockKind,
+  Habit,
+  HabitInput,
+  HabitUpdateInput,
+  Project,
+  ProjectInput,
+  ProjectPatch,
+  Task,
+  TaskDetailsInput,
+  WorkspaceState,
+} from "@/domain/models";
 import { createSeedWorkspace } from "@/data/seed";
+import { todayKey } from "@/domain/planning";
 import type { WorkspaceRepository } from "@/data/repositories/workspace-repository";
 
 const STORAGE_KEY = "geerthan-personal-os-v1";
+const ARCHIVED_HABITS_KEY = "geerthan-personal-os-archived-habits-v1";
 
 function makeId(prefix: string) {
   return `${prefix}-${crypto.randomUUID()}`;
@@ -299,6 +313,7 @@ export class LocalWorkspaceRepository implements WorkspaceRepository {
   async checkInHabit(habitId: string, date: string, value: number, note = "") {
     const habit = this.state.habits.find((item) => item.id === habitId);
     if (!habit) return structuredClone(this.state);
+    if (date > todayKey(this.state.profile.timezone)) throw new Error("invalid_habit_date_future");
     const existing = this.state.habitLogs.find((log) => log.habitId === habitId && log.date === date);
     const log = {
       id: existing?.id ?? makeId("habit-log"),
@@ -421,8 +436,233 @@ export class LocalWorkspaceRepository implements WorkspaceRepository {
     });
   }
 
+  private versionConflict(current: { version?: number }, expectedVersion: number) {
+    if ((current.version ?? 1) !== expectedVersion) {
+      throw new Error("This item changed somewhere else. Reload and try again.");
+    }
+  }
+
+  private readArchivedHabits(): Habit[] {
+    if (typeof window === "undefined") return [];
+    try {
+      return JSON.parse(window.localStorage.getItem(ARCHIVED_HABITS_KEY) ?? "[]") as Habit[];
+    } catch {
+      return [];
+    }
+  }
+
+  private writeArchivedHabits(habits: Habit[]) {
+    if (typeof window !== "undefined")
+      window.localStorage.setItem(ARCHIVED_HABITS_KEY, JSON.stringify(habits));
+  }
+
+  async updateTask(taskId: string, expectedVersion: number, input: TaskDetailsInput) {
+    const task = this.state.tasks.find((item) => item.id === taskId);
+    if (!task) throw new Error("That task no longer exists.");
+    this.versionConflict(task, expectedVersion);
+    const updated = { ...task, ...input, title: input.title.trim(), version: (task.version ?? 1) + 1 };
+    return this.persist({
+      ...this.state,
+      tasks: this.state.tasks.map((item) => (item.id === taskId ? updated : item)),
+      activity: [
+        event("task_updated", `Updated ${updated.title}`, "Task details edited from the workspace", true),
+        ...this.state.activity,
+      ],
+    });
+  }
+
+  async deleteTask(taskId: string) {
+    const task = this.state.tasks.find((item) => item.id === taskId);
+    if (!task) throw new Error("That task no longer exists.");
+    return this.persist({
+      ...this.state,
+      tasks: this.state.tasks.filter((item) => item.id !== taskId),
+      sessions: this.state.sessions.map((session) =>
+        session.taskId === taskId ? { ...session, taskId: null } : session,
+      ),
+      activity: [
+        event("task_deleted", `Deleted ${task.title}`, "Task removed from the workspace"),
+        ...this.state.activity,
+      ],
+    });
+  }
+
+  async createProject(input: ProjectInput) {
+    const code = input.code.trim().toUpperCase();
+    if (this.state.projects.some((project) => project.code === code)) {
+      throw new Error(`A project already uses the code ${code}.`);
+    }
+    const project: Project = {
+      id: makeId("project"),
+      version: 1,
+      name: input.name.trim(),
+      code,
+      description: input.description,
+      client: input.client,
+      status: "active",
+      health: "on_track",
+      progress: 0,
+      deadline: input.deadline,
+      nextMilestone: "",
+      accent: input.accent,
+    };
+    return this.persist({
+      ...this.state,
+      projects: [project, ...this.state.projects],
+      activity: [
+        event("project_created", `Created ${project.name}`, "New project added from Projects"),
+        ...this.state.activity,
+      ],
+    });
+  }
+
+  async updateProject(projectId: string, expectedVersion: number, patch: ProjectPatch) {
+    const project = this.state.projects.find((item) => item.id === projectId);
+    if (!project) throw new Error("That project no longer exists.");
+    this.versionConflict(project, expectedVersion);
+    const updated: Project = {
+      ...project,
+      ...patch,
+      code: patch.code ? patch.code.trim().toUpperCase() : project.code,
+      version: (project.version ?? 1) + 1,
+    };
+    return this.persist({
+      ...this.state,
+      projects: this.state.projects.map((item) => (item.id === projectId ? updated : item)),
+      activity: [
+        event(
+          "project_updated",
+          `Updated ${updated.name}`,
+          "Project details edited from the workspace",
+          true,
+        ),
+        ...this.state.activity,
+      ],
+    });
+  }
+
+  async deleteProject(projectId: string) {
+    const project = this.state.projects.find((item) => item.id === projectId);
+    if (!project) throw new Error("That project no longer exists.");
+    return this.persist({
+      ...this.state,
+      projects: this.state.projects.filter((item) => item.id !== projectId),
+      tasks: this.state.tasks.map((task) =>
+        task.projectId === projectId ? { ...task, projectId: null } : task,
+      ),
+      sessions: this.state.sessions.map((session) =>
+        session.projectId === projectId ? { ...session, projectId: null } : session,
+      ),
+      activity: [
+        event(
+          "project_deleted",
+          `Deleted ${project.name}`,
+          "Project removed; its tasks were kept without a project",
+        ),
+        ...this.state.activity,
+      ],
+    });
+  }
+
+  async createHabit(input: HabitInput) {
+    const boolean = input.metric === "boolean";
+    const habit: Habit = {
+      id: makeId("habit"),
+      version: 1,
+      name: input.name.trim(),
+      description: input.description,
+      metric: input.metric,
+      targetValue: boolean ? 1 : input.targetValue,
+      unit: boolean ? "" : input.unit.trim(),
+      accent: input.accent,
+      active: true,
+      sortOrder: Math.max(0, ...this.state.habits.map((item) => item.sortOrder)) + 1,
+    };
+    return this.persist({
+      ...this.state,
+      habits: [...this.state.habits, habit],
+      activity: [
+        event("habit_created", `Started tracking ${habit.name}`, "New habit added from Habits"),
+        ...this.state.activity,
+      ],
+    });
+  }
+
+  async updateHabit(habitId: string, expectedVersion: number, input: HabitUpdateInput) {
+    const habit = this.state.habits.find((item) => item.id === habitId);
+    if (!habit) throw new Error("That habit no longer exists.");
+    this.versionConflict(habit, expectedVersion);
+    const boolean = habit.metric === "boolean";
+    const updated: Habit = {
+      ...habit,
+      name: input.name.trim(),
+      description: input.description,
+      targetValue: boolean ? 1 : input.targetValue,
+      unit: boolean ? "" : input.unit.trim(),
+      accent: input.accent,
+      version: (habit.version ?? 1) + 1,
+    };
+    return this.persist({
+      ...this.state,
+      habits: this.state.habits.map((item) => (item.id === habitId ? updated : item)),
+      activity: [
+        event("habit_updated", `Updated ${updated.name}`, "Habit settings edited from Habits", true),
+        ...this.state.activity,
+      ],
+    });
+  }
+
+  async setHabitActive(habitId: string, active: boolean) {
+    const archived = this.readArchivedHabits();
+    if (active) {
+      const habit = archived.find((item) => item.id === habitId);
+      if (!habit) throw new Error("That habit no longer exists.");
+      this.writeArchivedHabits(archived.filter((item) => item.id !== habitId));
+      return this.persist({
+        ...this.state,
+        habits: [...this.state.habits, { ...habit, active: true }].sort((a, b) => a.sortOrder - b.sortOrder),
+        activity: [
+          event("habit_restored", `Restored ${habit.name}`, "Habit is tracked again", true),
+          ...this.state.activity,
+        ],
+      });
+    }
+    const habit = this.state.habits.find((item) => item.id === habitId);
+    if (!habit) throw new Error("That habit no longer exists.");
+    this.writeArchivedHabits([{ ...habit, active: false }, ...archived]);
+    return this.persist({
+      ...this.state,
+      habits: this.state.habits.filter((item) => item.id !== habitId),
+      activity: [
+        event("habit_archived", `Archived ${habit.name}`, "Habit hidden; its history is kept", true),
+        ...this.state.activity,
+      ],
+    });
+  }
+
+  async reorderHabits(orderedHabitIds: string[]) {
+    const position = new Map(orderedHabitIds.map((id, index) => [id, index + 1]));
+    return this.persist({
+      ...this.state,
+      habits: this.state.habits
+        .map((habit) => ({ ...habit, sortOrder: position.get(habit.id) ?? habit.sortOrder }))
+        .sort((a, b) => a.sortOrder - b.sortOrder),
+    });
+  }
+
+  async loadHabitLogs(from: string, to: string) {
+    return structuredClone(this.state.habitLogs.filter((log) => log.date >= from && log.date <= to));
+  }
+
+  async loadArchivedHabits() {
+    return this.readArchivedHabits();
+  }
+
   async reset() {
-    if (typeof window !== "undefined") window.localStorage.removeItem(STORAGE_KEY);
+    if (typeof window !== "undefined") {
+      window.localStorage.removeItem(STORAGE_KEY);
+      window.localStorage.removeItem(ARCHIVED_HABITS_KEY);
+    }
     return this.persist(createSeedWorkspace());
   }
 }
