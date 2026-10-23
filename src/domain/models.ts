@@ -145,6 +145,8 @@ export interface Habit {
   accent: "blue" | "violet" | "amber" | "emerald";
   active: boolean;
   sortOrder: number;
+  /** Local "HH:MM" time for this habit's push reminder, or null for none. */
+  reminderTime: string | null;
 }
 
 export interface HabitLog {
@@ -198,6 +200,12 @@ export type ProjectPatch = Partial<
   >
 >;
 
-export type HabitInput = Pick<Habit, "name" | "description" | "metric" | "targetValue" | "unit" | "accent">;
+export type HabitInput = Pick<
+  Habit,
+  "name" | "description" | "metric" | "targetValue" | "unit" | "accent"
+> & {
+  reminderTime?: string | null;
+};
 
+/** reminderTime: undefined leaves the reminder unchanged, null removes it. */
 export type HabitUpdateInput = Omit<HabitInput, "metric">;

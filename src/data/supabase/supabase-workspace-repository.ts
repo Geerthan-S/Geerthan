@@ -182,8 +182,8 @@ export class SupabaseWorkspaceRepository implements WorkspaceRepository {
     return this.runRpc("delete_project", { target_project: projectId });
   }
 
-  createHabit(input: HabitInput) {
-    return this.runRpc("create_habit", {
+  async createHabit(input: HabitInput) {
+    const { data, error } = await this.client.rpc("create_habit", {
       habit_name: input.name,
       habit_description: input.description,
       habit_metric: input.metric,
@@ -191,10 +191,13 @@ export class SupabaseWorkspaceRepository implements WorkspaceRepository {
       habit_unit: input.unit,
       habit_accent: input.accent,
     });
+    if (error) throw new Error(error.message);
+    if (input.reminderTime) return this.setHabitReminder((data as { id: string }).id, input.reminderTime);
+    return this.load();
   }
 
-  updateHabit(habitId: string, expectedVersion: number, input: HabitUpdateInput) {
-    return this.runRpc("update_habit", {
+  async updateHabit(habitId: string, expectedVersion: number, input: HabitUpdateInput) {
+    const { error } = await this.client.rpc("update_habit", {
       target_habit: habitId,
       expected_version: expectedVersion,
       habit_name: input.name,
@@ -203,6 +206,13 @@ export class SupabaseWorkspaceRepository implements WorkspaceRepository {
       habit_unit: input.unit,
       habit_accent: input.accent,
     });
+    if (error) throw new Error(error.message);
+    if (input.reminderTime !== undefined) return this.setHabitReminder(habitId, input.reminderTime);
+    return this.load();
+  }
+
+  setHabitReminder(habitId: string, reminderTime: string | null) {
+    return this.runRpc("set_habit_reminder", { target_habit: habitId, habit_reminder: reminderTime });
   }
 
   setHabitActive(habitId: string, active: boolean) {

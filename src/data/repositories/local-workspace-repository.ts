@@ -577,6 +577,7 @@ export class LocalWorkspaceRepository implements WorkspaceRepository {
       accent: input.accent,
       active: true,
       sortOrder: Math.max(0, ...this.state.habits.map((item) => item.sortOrder)) + 1,
+      reminderTime: input.reminderTime ?? null,
     };
     return this.persist({
       ...this.state,
@@ -600,6 +601,7 @@ export class LocalWorkspaceRepository implements WorkspaceRepository {
       targetValue: boolean ? 1 : input.targetValue,
       unit: boolean ? "" : input.unit.trim(),
       accent: input.accent,
+      reminderTime: input.reminderTime === undefined ? habit.reminderTime : input.reminderTime,
       version: (habit.version ?? 1) + 1,
     };
     return this.persist({
@@ -609,6 +611,15 @@ export class LocalWorkspaceRepository implements WorkspaceRepository {
         event("habit_updated", `Updated ${updated.name}`, "Habit settings edited from Habits", true),
         ...this.state.activity,
       ],
+    });
+  }
+
+  async setHabitReminder(habitId: string, reminderTime: string | null) {
+    const habit = this.state.habits.find((item) => item.id === habitId);
+    if (!habit) throw new Error("That habit no longer exists.");
+    return this.persist({
+      ...this.state,
+      habits: this.state.habits.map((item) => (item.id === habitId ? { ...item, reminderTime } : item)),
     });
   }
 

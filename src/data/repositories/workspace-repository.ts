@@ -41,6 +41,8 @@ export interface WorkspaceRepository {
   createHabit(input: HabitInput): Promise<WorkspaceState>;
   updateHabit(habitId: string, expectedVersion: number, input: HabitUpdateInput): Promise<WorkspaceState>;
   setHabitActive(habitId: string, active: boolean): Promise<WorkspaceState>;
+  /** reminderTime is a local "HH:MM" time, or null to turn the reminder off. */
+  setHabitReminder(habitId: string, reminderTime: string | null): Promise<WorkspaceState>;
   reorderHabits(orderedHabitIds: string[]): Promise<WorkspaceState>;
   /** Logs for active habits between two inclusive YYYY-MM-DD dates, for history views. */
   loadHabitLogs(from: string, to: string): Promise<HabitLog[]>;
