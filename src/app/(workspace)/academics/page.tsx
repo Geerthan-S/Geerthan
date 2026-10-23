@@ -1,1 +1,6 @@
-import type{Metadata}from"next";import{AcademicsView}from"@/features/academics/components/academics-view";export const metadata:Metadata={title:"Academics"};export default function AcademicsPage(){return <AcademicsView/>;}
+import type { Metadata } from "next";
+import { AcademicsView } from "@/features/academics/components/academics-view";
+export const metadata: Metadata = { title: "Academics" };
+export default function AcademicsPage() {
+  return <AcademicsView />;
+}

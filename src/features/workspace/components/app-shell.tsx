@@ -115,14 +115,14 @@ function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
           <Play size={16} fill="currentColor" />
         </Link>
       ) : null}
-      <div className="sidebar-profile">
-        <span className="avatar">G</span>
+      <Link href="/settings" className="sidebar-profile" onClick={onNavigate} aria-label="Account settings">
+        <span className="avatar">{state.profile.name.trim().charAt(0).toUpperCase() || "?"}</span>
         <div>
           <strong>{state.profile.name}</strong>
           <small>{mode === "supabase" ? "Live Supabase" : "Local preview"}</small>
         </div>
         <CircleUserRound size={18} />
-      </div>
+      </Link>
     </div>
   );
 }
@@ -239,16 +239,22 @@ export function AppShell({ children }: { children: ReactNode }) {
             >
               <Menu size={20} />
             </Button>
-            <div className="mobile-brand"><Brand /></div>
+            <div className="mobile-brand">
+              <Brand />
+            </div>
           </div>
           <button className="command-trigger" onClick={() => setCaptureOpen(true)}>
             <Search size={17} />
             <span>Capture anything…</span>
-            <kbd><Command size={12} /> K</kbd>
+            <kbd>
+              <Command size={12} /> K
+            </kbd>
           </button>
           <div className="topbar-date">
             <span>{new Intl.DateTimeFormat("en", { weekday: "long" }).format(new Date())}</span>
-            <strong>{new Intl.DateTimeFormat("en", { month: "short", day: "numeric" }).format(new Date())}</strong>
+            <strong>
+              {new Intl.DateTimeFormat("en", { month: "short", day: "numeric" }).format(new Date())}
+            </strong>
           </div>
         </header>
         <main className="workspace-content">{children}</main>

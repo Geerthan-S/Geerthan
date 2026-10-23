@@ -33,6 +33,7 @@ export function mapProfile(row: Row, email: string): WorkspaceProfile {
     email,
     timezone: text(row.timezone, "Asia/Kolkata"),
     focusTargetMinutes: numberValue(row.focus_target_minutes, 300),
+    mcpWriteEnabled: row.mcp_write_enabled === true,
   };
 }
 
@@ -67,9 +68,7 @@ export function mapTask(row: Row): Task {
     scheduledEnd: nullableText(row.scheduled_end),
     estimateMinutes: numberValue(row.estimate_minutes, 30),
     completedAt: nullableText(row.completed_at),
-    tags: Array.isArray(row.tags)
-      ? row.tags.filter((tag): tag is string => typeof tag === "string")
-      : [],
+    tags: Array.isArray(row.tags) ? row.tags.filter((tag): tag is string => typeof tag === "string") : [],
     createdAt: text(row.created_at),
     source: source === "web" ? "manual" : source === "api" || source === "mcp" ? "integration" : "plan",
   };
@@ -98,7 +97,12 @@ export function mapInboxItem(row: Row): InboxItem {
     triaged: Boolean(row.triaged),
     suggestedKind: nullableText(row.suggested_kind) as InboxItem["suggestedKind"],
     suggestedPriority: nullableText(row.suggested_priority) as InboxItem["suggestedPriority"],
-    suggestionConfidence: typeof row.suggestion_confidence === "number" ? row.suggestion_confidence : row.suggestion_confidence ? Number(row.suggestion_confidence) : null,
+    suggestionConfidence:
+      typeof row.suggestion_confidence === "number"
+        ? row.suggestion_confidence
+        : row.suggestion_confidence
+          ? Number(row.suggestion_confidence)
+          : null,
     suggestionReason: text(row.suggestion_reason),
   };
 }
@@ -120,6 +124,15 @@ export function mapActivity(row: Row): ActivityEvent {
     "calendar_block_updated",
     "changeset_reversed",
     "habit_checked_in",
+    "task_deleted",
+    "project_created",
+    "project_updated",
+    "project_deleted",
+    "habit_created",
+    "habit_updated",
+    "habit_archived",
+    "habit_restored",
+    "mcp_access_changed",
   ];
   const eventType = text(row.event_type);
   return {

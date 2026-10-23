@@ -92,7 +92,10 @@ describe("Phase 3 MCP read security", () => {
   });
 
   it("exposes only the approved domain write actions and executes validated structured input", async () => {
-    const readRepository: WorkspaceReadRepository = { userId: "seed-user", load: vi.fn(async () => createSeedWorkspace()) };
+    const readRepository: WorkspaceReadRepository = {
+      userId: "seed-user",
+      load: vi.fn(async () => createSeedWorkspace()),
+    };
     const execute = vi.fn(async (action, input) => ({ action, input, ok: true }));
     const writeRepository: DomainActionRepository = { userId: "seed-user", execute };
     const server = createPersonalOsMcpServer(
@@ -106,7 +109,11 @@ describe("Phase 3 MCP read security", () => {
 
     const listed = await client.listTools();
     expect(listed.tools.map((tool) => tool.name)).toEqual([...readToolNames, ...writeToolNames]);
-    expect(listed.tools.filter((tool) => writeToolNames.includes(tool.name as (typeof writeToolNames)[number])).every((tool) => tool.annotations?.readOnlyHint === false)).toBe(true);
+    expect(
+      listed.tools
+        .filter((tool) => writeToolNames.includes(tool.name as (typeof writeToolNames)[number]))
+        .every((tool) => tool.annotations?.readOnlyHint === false),
+    ).toBe(true);
     const result = await client.callTool({
       name: "create_task",
       arguments: {
@@ -120,7 +127,10 @@ describe("Phase 3 MCP read security", () => {
       },
     });
     expect(result.isError).not.toBe(true);
-    expect(execute).toHaveBeenCalledWith("create_task", expect.objectContaining({ title: "Prepare client handoff" }));
+    expect(execute).toHaveBeenCalledWith(
+      "create_task",
+      expect.objectContaining({ title: "Prepare client handoff" }),
+    );
 
     await client.close();
     await server.close();
@@ -142,10 +152,12 @@ describe("Phase 3 MCP read security", () => {
   it("rejects stale-write actions that omit the expected version before repository access", async () => {
     const execute = vi.fn();
     const service = new PersonalOsWriteService({ userId: "seed-user", execute });
-    await expect(service.execute("complete_task", {
-      task_id: "11111111-1111-4111-8111-111111111111",
-      idempotency_key: "test.complete.001",
-    })).rejects.toThrow();
+    await expect(
+      service.execute("complete_task", {
+        task_id: "11111111-1111-4111-8111-111111111111",
+        idempotency_key: "test.complete.001",
+      }),
+    ).rejects.toThrow();
     expect(execute).not.toHaveBeenCalled();
   });
 });

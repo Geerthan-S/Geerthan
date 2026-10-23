@@ -7,7 +7,5 @@ import { SupabaseWorkspaceRepository } from "@/data/supabase/supabase-workspace-
 
 export function createWorkspaceRepository(): WorkspaceRepository {
   const supabase = createSupabaseBrowserClient();
-  return supabase
-    ? new SupabaseWorkspaceRepository(supabase)
-    : new LocalWorkspaceRepository();
+  return supabase ? new SupabaseWorkspaceRepository(supabase) : new LocalWorkspaceRepository();
 }

@@ -3,7 +3,8 @@ import { authenticateReadRequest } from "@/data/supabase/request-auth";
 import { SupabaseDomainActionRepository } from "@/data/supabase/supabase-domain-action-repository";
 import { PersonalOsWriteService } from "@/mcp/personal-os-write-service";
 import { isWriteToolName } from "@/mcp/tools";
-import { consumeWriteQuota } from "@/mcp/write-rate-limit";
+import { consumeQuota, retryAfterSeconds } from "@/mcp/rate-limit";
+import { mcpWritesAllowed } from "@/mcp/write-access";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -23,8 +24,15 @@ function safeDomainError(error: unknown) {
   if (message.includes("version_conflict")) return { status: 409, code: "stale_write" };
   if (message.includes("idempotency_conflict")) return { status: 409, code: "idempotency_conflict" };
   if (message.includes("schedule_conflict")) return { status: 409, code: "schedule_conflict" };
-  if (message.includes("already") || message.includes("not_running") || message.includes("not_draft") || message.includes("not_committed")) return { status: 409, code: "state_conflict" };
-  if (message.includes("invalid_") || message.includes("unsupported_")) return { status: 400, code: "invalid_action" };
+  if (
+    message.includes("already") ||
+    message.includes("not_running") ||
+    message.includes("not_draft") ||
+    message.includes("not_committed")
+  )
+    return { status: 409, code: "state_conflict" };
+  if (message.includes("invalid_") || message.includes("unsupported_"))
+    return { status: 400, code: "invalid_action" };
   return { status: 500, code: "action_failed" };
 }
 
@@ -36,19 +44,38 @@ export async function POST(request: Request, context: { params: Promise<{ tool: 
   const { tool } = await context.params;
   if (!isWriteToolName(tool)) return json({ error: "Unknown domain action." }, 404);
 
-  const quota = consumeWriteQuota(auth.user.id);
-  if (!quota.allowed) return json({ error: "Write rate limit exceeded." }, 429, { "Retry-After": String(Math.ceil((quota.resetAt - Date.now()) / 1000)) });
+  // Bearer tokens come from external AI clients; they may only write once the
+  // user has allowed it. Cookie requests come from the user's own browser session.
+  if (auth.mode === "bearer" && !(await mcpWritesAllowed(auth.client, auth.user.id))) {
+    return json({ error: "write_access_disabled" }, 403);
+  }
+
+  const quota = await consumeQuota(auth.client, auth.user.id, "mcp_write");
+  if (!quota.allowed)
+    return json({ error: "Write rate limit exceeded." }, 429, {
+      "Retry-After": retryAfterSeconds(quota),
+    });
 
   try {
     const text = await request.text();
-    if (new TextEncoder().encode(text).byteLength > MAX_BODY_BYTES) return json({ error: "Request body is too large." }, 413);
+    if (new TextEncoder().encode(text).byteLength > MAX_BODY_BYTES)
+      return json({ error: "Request body is too large." }, 413);
     const input: unknown = text.trim() ? JSON.parse(text) : {};
     const repository = new SupabaseDomainActionRepository(auth.client, auth.user.id);
     const data = await new PersonalOsWriteService(repository).execute(tool, input);
-    return json({ tool, source: "supabase-rpc", data }, 200, { "X-RateLimit-Remaining": String(quota.remaining) });
+    return json({ tool, source: "supabase-rpc", data }, 200, {
+      "X-RateLimit-Remaining": String(quota.remaining),
+    });
   } catch (error) {
     if (error instanceof SyntaxError) return json({ error: "Request body must be valid JSON." }, 400);
-    if (error instanceof ZodError) return json({ error: "Invalid action input.", issues: error.issues.map(({ path, message }) => ({ path, message })) }, 400);
+    if (error instanceof ZodError)
+      return json(
+        {
+          error: "Invalid action input.",
+          issues: error.issues.map(({ path, message }) => ({ path, message })),
+        },
+        400,
+      );
     const safe = safeDomainError(error);
     console.error("MCP domain action failed", tool, safe.code);
     return json({ error: safe.code }, safe.status);

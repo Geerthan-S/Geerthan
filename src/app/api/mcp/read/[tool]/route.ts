@@ -3,7 +3,7 @@ import { authenticateReadRequest } from "@/data/supabase/request-auth";
 import { SupabaseWorkspaceReadRepository } from "@/data/supabase/supabase-workspace-read-repository";
 import { SupabaseProductPlanningContextRepository } from "@/data/supabase/supabase-product-planning-context-repository";
 import { PersonalOsReadService } from "@/mcp/personal-os-read-service";
-import { consumeReadQuota } from "@/mcp/read-rate-limit";
+import { consumeQuota, retryAfterSeconds } from "@/mcp/rate-limit";
 import { isReadToolName } from "@/mcp/tools";
 
 export const runtime = "nodejs";
@@ -31,31 +31,34 @@ export async function POST(request: Request, context: { params: Promise<{ tool: 
   const { tool } = await context.params;
   if (!isReadToolName(tool)) return json({ error: "Unknown read tool." }, 404);
 
-  const quota = consumeReadQuota(auth.user.id);
+  const quota = await consumeQuota(auth.client, auth.user.id, "mcp_read");
   if (!quota.allowed) {
-    return json(
-      { error: "Read rate limit exceeded." },
-      429,
-      { "Retry-After": String(Math.ceil((quota.resetAt - Date.now()) / 1000)) },
-    );
+    return json({ error: "Read rate limit exceeded." }, 429, {
+      "Retry-After": retryAfterSeconds(quota),
+    });
   }
 
   try {
     const text = await request.text();
-    if (new TextEncoder().encode(text).byteLength > MAX_BODY_BYTES) return json({ error: "Request body is too large." }, 413);
+    if (new TextEncoder().encode(text).byteLength > MAX_BODY_BYTES)
+      return json({ error: "Request body is too large." }, 413);
     const input: unknown = text.trim() ? JSON.parse(text) : {};
     const repository = new SupabaseWorkspaceReadRepository(auth.client, auth.user);
-    const data = await new PersonalOsReadService(repository,new SupabaseProductPlanningContextRepository(auth.client,auth.user.id)).execute(tool, input);
-    return json(
-      { tool, source: "supabase", data },
-      200,
-      { "X-RateLimit-Remaining": String(quota.remaining) },
-    );
+    const data = await new PersonalOsReadService(
+      repository,
+      new SupabaseProductPlanningContextRepository(auth.client, auth.user.id),
+    ).execute(tool, input);
+    return json({ tool, source: "supabase", data }, 200, {
+      "X-RateLimit-Remaining": String(quota.remaining),
+    });
   } catch (error) {
     if (error instanceof SyntaxError) return json({ error: "Request body must be valid JSON." }, 400);
     if (error instanceof ZodError) {
       return json(
-        { error: "Invalid tool input.", issues: error.issues.map(({ path, message }) => ({ path, message })) },
+        {
+          error: "Invalid tool input.",
+          issues: error.issues.map(({ path, message }) => ({ path, message })),
+        },
         400,
       );
     }

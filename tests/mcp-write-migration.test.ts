@@ -5,7 +5,9 @@ import { writeToolNames } from "@/mcp/tools";
 
 describe("MCP domain-action migration", () => {
   it("defines one explicit RPC per approved write tool with user scope and retry receipts", async () => {
-    const path = fileURLToPath(new URL("../supabase/migrations/202608250004_mcp_domain_actions.sql", import.meta.url));
+    const path = fileURLToPath(
+      new URL("../supabase/migrations/202608250004_mcp_domain_actions.sql", import.meta.url),
+    );
     const sql = await readFile(path, "utf8");
 
     for (const name of writeToolNames) {

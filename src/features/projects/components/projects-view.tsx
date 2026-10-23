@@ -1,6 +1,9 @@
 "use client";
 
-import { ArrowUpRight, Calendar, CheckCircle2, CircleDot, FolderKanban } from "lucide-react";
+import { Calendar, CheckCircle2, CircleDot, FolderKanban, Pencil } from "lucide-react";
+import { useState } from "react";
+import type { Project } from "@/domain/models";
+import { ProjectFormDialog } from "@/features/projects/components/project-form-dialog";
 import { useWorkspace } from "@/features/workspace/workspace-provider";
 import { PageHeader } from "@/features/workspace/components/page-header";
 import { Button } from "@/shared/components/ui/button";
@@ -12,6 +15,8 @@ const healthTone = { on_track: "green", at_risk: "amber", blocked: "red" } as co
 
 export function ProjectsView() {
   const { state } = useWorkspace();
+  const [creating, setCreating] = useState(false);
+  const [editing, setEditing] = useState<Project | null>(null);
 
   return (
     <div className="page-stack">
@@ -19,13 +24,31 @@ export function ProjectsView() {
         eyebrow="Projects"
         title="Outcomes, not containers."
         description="Every active project has a next milestone, deadline, and honest health signal."
-        actions={<Button><FolderKanban size={15} /> New project</Button>}
+        actions={
+          <Button onClick={() => setCreating(true)}>
+            <FolderKanban size={15} /> New project
+          </Button>
+        }
       />
       <div className="project-summary-row">
-        <span><strong>{state.projects.filter((p) => p.status === "active").length}</strong> active</span>
-        <span><strong>{state.projects.filter((p) => p.health === "at_risk").length}</strong> at risk</span>
-        <span><strong>{state.tasks.filter((t) => t.status !== "completed").length}</strong> open tasks</span>
+        <span>
+          <strong>{state.projects.filter((p) => p.status === "active").length}</strong> active
+        </span>
+        <span>
+          <strong>{state.projects.filter((p) => p.health === "at_risk").length}</strong> at risk
+        </span>
+        <span>
+          <strong>{state.tasks.filter((t) => t.status !== "completed").length}</strong> open tasks
+        </span>
       </div>
+      {!state.projects.length ? (
+        <GlassPanel className="empty-state">
+          <FolderKanban size={22} />
+          <h3>No projects yet.</h3>
+          <p>Group related tasks under an outcome with a deadline and a next milestone.</p>
+          <Button onClick={() => setCreating(true)}>Create a project</Button>
+        </GlassPanel>
+      ) : null}
       <section className="project-grid">
         {state.projects.map((project) => {
           const tasks = state.tasks.filter((task) => task.projectId === project.id);
@@ -33,7 +56,9 @@ export function ProjectsView() {
           return (
             <GlassPanel className="project-card" key={project.id}>
               <div className="project-card-top">
-                <span className={`project-monogram project-monogram-large accent-${project.accent}`}>{project.code}</span>
+                <span className={`project-monogram project-monogram-large accent-${project.accent}`}>
+                  {project.code}
+                </span>
                 <StatusPill tone={project.status === "paused" ? "neutral" : healthTone[project.health]}>
                   {project.status === "paused" ? "Paused" : project.health.replace("_", " ")}
                 </StatusPill>
@@ -43,21 +68,42 @@ export function ProjectsView() {
                 <h2>{project.name}</h2>
                 <p>{project.description}</p>
               </div>
-              <div className="project-progress-heading"><span>Progress</span><strong>{project.progress}%</strong></div>
-              <div className="progress-track project-progress"><span style={{ width: `${project.progress}%` }} /></div>
+              <div className="project-progress-heading">
+                <span>Progress</span>
+                <strong>{project.progress}%</strong>
+              </div>
+              <div className="progress-track project-progress">
+                <span style={{ width: `${project.progress}%` }} />
+              </div>
               <div className="project-milestone">
                 <CircleDot size={16} />
-                <div><small>Next milestone</small><strong>{project.nextMilestone}</strong></div>
+                <div>
+                  <small>Next milestone</small>
+                  <strong>{project.nextMilestone || "Not set yet"}</strong>
+                </div>
               </div>
               <div className="project-card-footer">
-                <span><Calendar size={14} /> {formatShortDate(project.deadline)}</span>
-                <span><CheckCircle2 size={14} /> {complete}/{tasks.length} tasks</span>
-                <button aria-label={`Open ${project.name}`}><ArrowUpRight size={17} /></button>
+                <span>
+                  <Calendar size={14} />{" "}
+                  {project.deadline ? formatShortDate(project.deadline) : "No deadline"}
+                </span>
+                <span>
+                  <CheckCircle2 size={14} /> {complete}/{tasks.length} tasks
+                </span>
+                <button aria-label={`Edit ${project.name}`} onClick={() => setEditing(project)}>
+                  <Pencil size={15} />
+                </button>
               </div>
             </GlassPanel>
           );
         })}
       </section>
+      <ProjectFormDialog open={creating} onClose={() => setCreating(false)} />
+      <ProjectFormDialog
+        open={Boolean(editing)}
+        project={editing ?? undefined}
+        onClose={() => setEditing(null)}
+      />
     </div>
   );
 }

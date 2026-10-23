@@ -12,11 +12,7 @@ export function isToday(value: string | null, now = new Date()) {
 
 export function getTodayTasks(state: WorkspaceState) {
   return state.tasks
-    .filter(
-      (task) =>
-        task.status !== "completed" &&
-        (isToday(task.scheduledStart) || isToday(task.dueAt)),
-    )
+    .filter((task) => task.status !== "completed" && (isToday(task.scheduledStart) || isToday(task.dueAt)))
     .sort((a, b) => {
       if (!a.scheduledStart) return 1;
       if (!b.scheduledStart) return -1;
@@ -42,7 +38,9 @@ export function getFocusedMinutesToday(state: WorkspaceState, now = new Date()) 
     .filter((session) => isToday(session.startedAt, now))
     .reduce((total, session) => {
       if (session.status === "running") {
-        return total + Math.max(1, Math.floor((now.getTime() - new Date(session.startedAt).getTime()) / 60000));
+        return (
+          total + Math.max(1, Math.floor((now.getTime() - new Date(session.startedAt).getTime()) / 60000))
+        );
       }
       return total + session.durationMinutes;
     }, 0);

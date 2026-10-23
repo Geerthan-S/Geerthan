@@ -6,6 +6,16 @@ import { SupabaseLearningRepository } from "@/data/supabase/supabase-learning-re
 import { SupabaseSystemRepository } from "@/data/supabase/supabase-system-repository";
 
 export class SupabaseProductPlanningContextRepository implements ProductPlanningContextRepository {
-  constructor(private readonly client:SupabaseClient,private readonly userId:string){}
-  async loadProducts(){const[business,learning,system]=await Promise.all([new SupabaseBusinessRepository(this.client,this.userId).load(),new SupabaseLearningRepository(this.client,this.userId).load(),new SupabaseSystemRepository(this.client,this.userId).load()]);return{business,learning,system};}
+  constructor(
+    private readonly client: SupabaseClient,
+    private readonly userId: string,
+  ) {}
+  async loadProducts() {
+    const [business, learning, system] = await Promise.all([
+      new SupabaseBusinessRepository(this.client, this.userId).load(),
+      new SupabaseLearningRepository(this.client, this.userId).load(),
+      new SupabaseSystemRepository(this.client, this.userId).load(),
+    ]);
+    return { business, learning, system };
+  }
 }

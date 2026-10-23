@@ -1,1 +1,6 @@
-import type{Metadata}from"next";import{GrowthView}from"@/features/growth/components/growth-view";export const metadata:Metadata={title:"Growth"};export default function GrowthPage(){return <GrowthView/>;}
+import type { Metadata } from "next";
+import { GrowthView } from "@/features/growth/components/growth-view";
+export const metadata: Metadata = { title: "Growth" };
+export default function GrowthPage() {
+  return <GrowthView />;
+}

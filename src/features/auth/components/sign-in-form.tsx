@@ -7,7 +7,7 @@ import { useState, type FormEvent } from "react";
 import { createSupabaseBrowserClient } from "@/data/supabase/client";
 import { Button } from "@/shared/components/ui/button";
 
-export function SignInForm({ configured }: { configured: boolean }) {
+export function SignInForm({ configured, notice }: { configured: boolean; notice?: string }) {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -34,17 +34,66 @@ export function SignInForm({ configured }: { configured: boolean }) {
       <div className="login-orb login-orb-one" />
       <div className="login-orb login-orb-two" />
       <section className="login-card glass-panel">
-        <div className="login-brand"><span className="brand-mark"><BriefcaseBusiness size={19} /></span><span><strong>Personal OS</strong><small>Work command</small></span></div>
-        <div className="login-copy"><span className="eyebrow"><LockKeyhole size={14} /> Private workspace</span><h1>Return to focused work.</h1><p>Your projects, plans, and activity stay behind your authenticated Supabase workspace.</p></div>
+        <div className="login-brand">
+          <span className="brand-mark">
+            <BriefcaseBusiness size={19} />
+          </span>
+          <span>
+            <strong>Personal OS</strong>
+            <small>Work command</small>
+          </span>
+        </div>
+        <div className="login-copy">
+          <span className="eyebrow">
+            <LockKeyhole size={14} /> Private workspace
+          </span>
+          <h1>Return to focused work.</h1>
+          <p>Your projects, plans, and activity stay behind your authenticated Supabase workspace.</p>
+        </div>
+        {notice ? (
+          <p className="form-notice" role="status">
+            {notice}
+          </p>
+        ) : null}
         {configured ? (
           <form onSubmit={signIn} className="login-form">
-            <label>Email<input className="glass-input" type="email" value={email} onChange={(event) => setEmail(event.target.value)} required /></label>
-            <label>Password<input className="glass-input" type="password" value={password} onChange={(event) => setPassword(event.target.value)} required /></label>
+            <label>
+              Email
+              <input
+                className="glass-input"
+                type="email"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                required
+              />
+            </label>
+            <label>
+              Password
+              <input
+                className="glass-input"
+                type="password"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                required
+              />
+            </label>
             {message ? <p className="form-error">{message}</p> : null}
-            <Button type="submit" disabled={loading}>{loading ? "Signing in…" : "Sign in"}<ArrowRight size={15} /></Button>
+            <Button type="submit" disabled={loading}>
+              {loading ? "Signing in…" : "Sign in"}
+              <ArrowRight size={15} />
+            </Button>
           </form>
         ) : (
-          <div className="preview-access"><strong>Preview mode is ready.</strong><p>Connect Supabase environment keys to activate account sign-in. Until then, the complete seeded workspace runs locally.</p><Link href="/" className="button button-primary button-md">Enter preview <ArrowRight size={15} /></Link></div>
+          <div className="preview-access">
+            <strong>Preview mode is ready.</strong>
+            <p>
+              Connect Supabase environment keys to activate account sign-in. Until then, the complete seeded
+              workspace runs locally.
+            </p>
+            <Link href="/" className="button button-primary button-md">
+              Enter preview <ArrowRight size={15} />
+            </Link>
+          </div>
         )}
         <small className="login-footnote">Draft changes are always reviewed before commit.</small>
       </section>
