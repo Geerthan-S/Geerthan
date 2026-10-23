@@ -218,6 +218,7 @@ export function mapHabit(row: Row): Habit {
     accent: text(row.accent, "blue") as Habit["accent"],
     active: Boolean(row.active),
     sortOrder: numberValue(row.sort_order),
+    reminderTime: typeof row.reminder_time === "string" ? row.reminder_time.slice(0, 5) : null,
   };
 }
 

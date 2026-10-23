@@ -405,6 +405,7 @@ export function createSeedWorkspace(): WorkspaceState {
         accent: "emerald",
         active: true,
         sortOrder: 1,
+        reminderTime: null,
       },
       {
         id: "habit-dsa",
@@ -416,6 +417,7 @@ export function createSeedWorkspace(): WorkspaceState {
         accent: "blue",
         active: true,
         sortOrder: 2,
+        reminderTime: null,
       },
       {
         id: "habit-water",
@@ -427,6 +429,7 @@ export function createSeedWorkspace(): WorkspaceState {
         accent: "violet",
         active: true,
         sortOrder: 3,
+        reminderTime: null,
       },
       {
         id: "habit-sleep",
@@ -438,6 +441,7 @@ export function createSeedWorkspace(): WorkspaceState {
         accent: "amber",
         active: true,
         sortOrder: 4,
+        reminderTime: null,
       },
     ],
     habitLogs: Array.from({ length: 6 }).flatMap((_, index) => {

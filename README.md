@@ -68,9 +68,21 @@ CI (`.github/workflows/ci.yml`) runs all three on every pull request.
 1. **Database** — apply every file in `supabase/migrations` in order (`supabase db push`, or the SQL editor). Turn on daily backups and point-in-time recovery in the Supabase dashboard, and test a restore once.
 2. **Auth** — set the Site URL and redirect URLs to the production domain, enable email confirmation, and keep Supabase's sign-in rate limits on.
 3. **Environment** — set the variables above in your host. Secrets stay server-only.
-4. **Push** — generate VAPID keys, set `CRON_SECRET` and `SUPABASE_SECRET_KEY`, then call `GET /api/cron/push-notifications` with `Authorization: Bearer $CRON_SECRET` every 5–15 minutes. Use your host's scheduler, or set the `APP_URL` repository variable and `CRON_SECRET` secret to enable `.github/workflows/push-notifications.yml`.
+4. **Push and sync** — generate VAPID keys, set `CRON_SECRET` and `SUPABASE_SECRET_KEY`, then call `GET /api/cron/push-notifications` with `Authorization: Bearer $CRON_SECRET` every 5–15 minutes (and `GET /api/cron/calendar-sync` if Google Calendar is set up). Use your host's scheduler, or set the `APP_URL` repository variable and `CRON_SECRET` secret to enable `.github/workflows/push-notifications.yml`.
 5. **Errors** — server and browser errors are logged as one JSON line each (query strings removed). Set `ERROR_WEBHOOK_URL` to forward them to your log or error service.
 6. **AI assistants (MCP)** — connected assistants are read-only until you choose **Settings → AI assistants → Allow changes**. MCP clients authenticate with a Supabase session token, so anyone holding that token has your full access through the Supabase API as well; sign out everywhere if one leaks. Per-client OAuth scopes need Supabase's OAuth server and are not set up yet.
+
+## Google Calendar
+
+Read-only import of the next 14 days of timed, busy events into Calendar and Today. The day planner schedules around them, and nothing is written back to Google.
+
+1. In [Google Cloud Console](https://console.cloud.google.com/), create a project and enable the **Google Calendar API**.
+2. Under **Google Auth Platform → Branding**, fill in the app name and your email. Under **Audience**, choose **External**, then **Publish app** (while it stays in _Testing_, Google expires access every 7 days). Under **Data access**, add the scope `.../auth/calendar.events.readonly`.
+3. Under **Clients → Create client**, choose **Web application**, and add the authorized redirect URI `https://<your-domain>/api/integrations/google/callback`.
+4. Set `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` and `INTEGRATION_ENCRYPTION_KEY` (`openssl rand -base64 32`) in Vercel, and redeploy.
+5. In the app, open **Settings → Google Calendar → Connect**. Google shows an "unverified app" warning for personal projects; choose **Advanced → Go to …** to continue.
+
+Refresh tokens are encrypted with AES-256-GCM before storage, and only server-side jobs can read them. The scheduled workflow syncs every connection every ~30 minutes. Changing `INTEGRATION_ENCRYPTION_KEY` later disconnects everyone, who then has to connect again.
 
 ## Security notes
 

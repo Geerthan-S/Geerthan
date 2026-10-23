@@ -3,7 +3,8 @@
 import { Bot, Download, LogOut, Trash2, UserRound, Clock3 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useMemo, useState, type FormEvent, type ReactNode } from "react";
-import type { PlanningPreferences } from "@/domain/system-models";
+import type { IntegrationRecord, PlanningPreferences } from "@/domain/system-models";
+import { GoogleCalendarSettings } from "@/features/settings/components/google-calendar-settings";
 import {
   deleteMyAccount,
   downloadMyData,
@@ -84,9 +85,13 @@ function timezones() {
 export function AccountSettings({
   planning,
   onPlanningSaved,
+  googleCalendar,
+  googleCallbackStatus,
 }: {
   planning: PlanningPreferences | null;
   onPlanningSaved: () => Promise<void>;
+  googleCalendar: IntegrationRecord | undefined;
+  googleCallbackStatus: string | null;
 }) {
   const { mode } = useWorkspace();
   if (mode !== "supabase") {
@@ -105,6 +110,11 @@ export function AccountSettings({
       {planning ? (
         <PlanningSettings key={JSON.stringify(planning)} initial={planning} onSaved={onPlanningSaved} />
       ) : null}
+      <GoogleCalendarSettings
+        connection={googleCalendar}
+        callbackStatus={googleCallbackStatus}
+        onChanged={onPlanningSaved}
+      />
       <AiAccessSettings />
       <DataSettings />
     </div>

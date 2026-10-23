@@ -28,6 +28,7 @@ function habit(overrides: Partial<Habit> = {}): Habit {
     accent: "blue",
     active: true,
     sortOrder: 1,
+    reminderTime: null,
     ...overrides,
   };
 }

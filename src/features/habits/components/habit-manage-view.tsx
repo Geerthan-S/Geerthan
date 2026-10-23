@@ -10,8 +10,11 @@ import { ConfirmDialog } from "@/shared/components/ui/dialog";
 import { GlassPanel } from "@/shared/components/ui/glass-panel";
 
 function describe(habit: Habit) {
-  if (habit.metric === "boolean") return "Yes / no each day";
-  return `Target ${habit.targetValue}${habit.unit ? ` ${habit.unit}` : ""} a day`;
+  const goal =
+    habit.metric === "boolean"
+      ? "Yes / no each day"
+      : `Target ${habit.targetValue}${habit.unit ? ` ${habit.unit}` : ""} a day`;
+  return habit.reminderTime ? `${goal} · reminder ${habit.reminderTime}` : goal;
 }
 
 export function HabitManageView() {

@@ -73,6 +73,7 @@ const emptyHabit: HabitInput = {
   targetValue: 1,
   unit: "",
   accent: "blue",
+  reminderTime: null,
 };
 
 interface HabitFormDialogProps {
@@ -107,6 +108,10 @@ function HabitForm({ onClose, habit }: { onClose: () => void; habit?: Habit }) {
           targetValue: input.targetValue,
           unit: input.unit,
           accent: input.accent,
+          // Only send the reminder when it changed, so an edit doesn't log a reminder change.
+          ...((input.reminderTime ?? null) !== habit.reminderTime
+            ? { reminderTime: input.reminderTime ?? null }
+            : {}),
         })
       : await actions.createHabit(input);
     setSaving(false);
@@ -208,6 +213,16 @@ function HabitForm({ onClose, habit }: { onClose: () => void; habit?: Habit }) {
             </>
           ) : null}
         </div>
+        <label className="field-label" htmlFor="habit-reminder">
+          Reminder <span>optional · sent as a push if the habit is still open</span>
+        </label>
+        <input
+          id="habit-reminder"
+          className="glass-input habit-reminder-input"
+          type="time"
+          value={draft.reminderTime ?? ""}
+          onChange={(event) => update("reminderTime", event.target.value || null)}
+        />
         <fieldset className="accent-picker">
           <legend className="field-label">Colour</legend>
           {accents.map((accent) => (
