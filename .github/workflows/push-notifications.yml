@@ -1,6 +1,6 @@
-name: Deliver push notifications
+name: Scheduled jobs (push, calendar sync)
 
-# Calls the app's push dispatcher on a schedule. It does nothing until the
+# Calls the app's push dispatcher and Google Calendar sync on a schedule. It does nothing until the
 # repository has an APP_URL variable and a CRON_SECRET secret. If your host has
 # its own scheduler (for example Vercel Cron), use that instead and delete this.
 on:
@@ -24,6 +24,11 @@ jobs:
             echo "APP_URL or CRON_SECRET is not set; skipping."
             exit 0
           fi
-          curl --fail-with-body --silent --show-error --max-time 60 \
-            -H "Authorization: Bearer $CRON_SECRET" \
-            "$APP_URL/api/cron/push-notifications"
+          # Sync first so reminders see the newest calendar.
+          for job in calendar-sync push-notifications; do
+            echo "== $job"
+            curl --fail-with-body --silent --show-error --max-time 60 \
+              -H "Authorization: Bearer $CRON_SECRET" \
+              "$APP_URL/api/cron/$job"
+            echo
+          done

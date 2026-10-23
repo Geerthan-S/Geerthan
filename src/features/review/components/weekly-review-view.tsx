@@ -29,7 +29,7 @@ function Change({
 }: {
   current: number;
   previous: number;
-  unit: "percent" | "count";
+  unit: "percent" | "count" | "minutes";
 }) {
   const delta = unit === "percent" ? Math.round((current - previous) * 100) : current - previous;
   if (delta === 0 || (current === 0 && previous === 0)) {
@@ -44,7 +44,7 @@ function Change({
     <span className={cn("review-change", up ? "is-up" : "is-down")}>
       {up ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
       {up ? "+" : "−"}
-      {Math.abs(delta)}
+      {unit === "minutes" ? formatMinutes(Math.abs(delta)) : Math.abs(delta)}
       {unit === "percent" ? " pts" : ""} vs last week
     </span>
   );
@@ -111,7 +111,7 @@ export function WeeklyReviewView() {
         <GlassPanel>
           <span>Focus time</span>
           <strong>{formatMinutes(current.focusMinutes)}</strong>
-          <Change current={current.focusMinutes} previous={previous.focusMinutes} unit="count" />
+          <Change current={current.focusMinutes} previous={previous.focusMinutes} unit="minutes" />
         </GlassPanel>
         <GlassPanel>
           <span>Tasks finished</span>

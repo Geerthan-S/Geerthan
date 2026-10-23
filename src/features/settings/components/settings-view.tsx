@@ -1,4 +1,5 @@
 "use client";
+import { useSearchParams } from "next/navigation";
 import { Cable, CheckCircle2, ShieldCheck } from "lucide-react";
 import { connectorDefinitions } from "@/integrations/catalog";
 import { AccountSettings } from "@/features/settings/components/account-settings";
@@ -8,6 +9,7 @@ import { GlassPanel } from "@/shared/components/ui/glass-panel";
 const label = (value: string) => value.replaceAll("_", " ");
 export function SettingsView() {
   const { data, error, reload } = useSystemData();
+  const googleStatus = useSearchParams().get("google");
   return (
     <div className="page-stack">
       <PageHeader
@@ -16,7 +18,12 @@ export function SettingsView() {
         description="Edit how your days are shaped, choose what AI assistants may do, and take your data with you."
       />
       {error ? <div className="workspace-error">{error}</div> : null}
-      <AccountSettings planning={data?.planningPreferences ?? null} onPlanningSaved={reload} />
+      <AccountSettings
+        planning={data?.planningPreferences ?? null}
+        onPlanningSaved={reload}
+        googleCalendar={data?.integrations.find((item) => item.connector === "google_calendar")}
+        googleCallbackStatus={googleStatus}
+      />
       <div className="settings-assurance">
         <GlassPanel>
           <ShieldCheck />
