@@ -18,16 +18,21 @@ test("creates a habit and ticks a past day on the month grid", async ({ page }) 
   const row = page.getByRole("row", { name: /Cold shower/ });
   await expect(row).toBeVisible();
 
-  const today = new Date();
+  // "Today" follows the profile timezone, which can differ from the test machine's clock,
+  // so use the cell the app marks as today rather than computing the date here.
   const cells = row.getByRole("button");
-  const todayCell = cells.nth(today.getDate() - 1);
+  const todayCell = row.locator(".habit-cell.is-today");
+  const todayLabel = await todayCell.getAttribute("aria-label");
+  const todayIndex = await todayCell.evaluate((cell) =>
+    [...cell.closest("tr")!.querySelectorAll(".habit-cell")].indexOf(cell as HTMLElement),
+  );
+  const cellCount = await cells.count();
   await expect(todayCell).toHaveAttribute("aria-pressed", "false");
   await todayCell.click();
   await expect(todayCell).toHaveAttribute("aria-pressed", "true");
 
   // Days after today cannot be ticked.
-  const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
-  if (today.getDate() < daysInMonth) await expect(cells.nth(today.getDate())).toBeDisabled();
+  if (todayIndex < cellCount - 1) await expect(cells.nth(todayIndex + 1)).toBeDisabled();
 
   // The tick survives a reload (preview mode persists to localStorage).
   await page.reload();
@@ -35,8 +40,7 @@ test("creates a habit and ticks a past day on the month grid", async ({ page }) 
   await expect(
     page
       .getByRole("row", { name: /Cold shower/ })
-      .getByRole("button")
-      .nth(today.getDate() - 1),
+      .getByRole("button", { name: todayLabel!.replace("not done", "done") }),
   ).toHaveAttribute("aria-pressed", "true");
 });
 
