@@ -5114,3 +5114,44 @@ a.sidebar-profile {
     grid-column: 2 / -1;
   }
 }
+
+/* Public legal pages */
+.legal-page {
+  display: grid;
+  place-items: start center;
+  min-height: 100vh;
+  padding: 48px 16px;
+}
+.legal-card {
+  width: min(720px, 100%);
+  padding: 32px;
+  line-height: 1.65;
+}
+.legal-card h1 {
+  margin: 8px 0 4px;
+  font-size: 28px;
+  letter-spacing: -0.02em;
+}
+.legal-card h2 {
+  margin: 26px 0 6px;
+  font-size: 16px;
+}
+.legal-card p,
+.legal-card li {
+  color: var(--text-soft);
+  font-size: 13px;
+}
+.legal-card a {
+  color: var(--blue);
+}
+.legal-card code {
+  font-size: 12px;
+}
+.legal-updated {
+  margin-top: 0;
+  color: var(--text-faint) !important;
+  font-size: 11px !important;
+}
+.legal-back {
+  margin-top: 28px;
+}

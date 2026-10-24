@@ -61,3 +61,10 @@ test("sends security headers", async ({ request }) => {
   expect(headers["strict-transport-security"]).toContain("max-age=");
   expect(headers["x-powered-by"]).toBeUndefined();
 });
+
+test("serves a public privacy policy that describes Google data use", async ({ page }) => {
+  await page.goto("/privacy");
+  await expect(page.getByRole("heading", { name: "Privacy policy" })).toBeVisible();
+  await expect(page.getByText("calendar.events.readonly")).toBeVisible();
+  await expect(page.getByRole("link", { name: "Google API Services User Data Policy" })).toBeVisible();
+});

@@ -21,7 +21,7 @@ export async function proxy(request: NextRequest) {
   const { data } = await supabase.auth.getClaims();
   const pathname = request.nextUrl.pathname;
   const isApi = pathname.startsWith("/api/");
-  const isPublicPage = pathname === "/login" || pathname.startsWith("/auth/");
+  const isPublicPage = pathname === "/login" || pathname === "/privacy" || pathname.startsWith("/auth/");
 
   if (!data?.claims && !isApi && !isPublicPage) {
     const destination = request.nextUrl.clone();
